@@ -208,4 +208,6 @@ pub enum DaemonMessage {
         prompts: Vec<QueuedPromptRecord>,
     },
     AgentThreadExecutionProfile { thread_id: String, profile_json: String },
+    McpServers { servers: Vec<super::McpServerStatus> },
+    McpOperationResult { request_id: String, revision: u64, success: bool, message: String, server: Option<super::McpServerStatus> },
 }

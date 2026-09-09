@@ -15,6 +15,7 @@ mod git;
 mod governance;
 mod history;
 mod lsp_client;
+mod mcp_client;
 mod network;
 mod notifications;
 mod orchestration;

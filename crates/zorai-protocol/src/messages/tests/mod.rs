@@ -2371,3 +2371,5 @@ fn mlflow_tracing_protocol_variants_round_trip_at_append_only_tail() {
         );
     }
 }
+
+mod mcp;

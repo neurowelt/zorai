@@ -14,6 +14,7 @@ impl SettingsState {
             }
 
             SettingsAction::Close => {
+                self.mcp.close_draft();
                 self.editing_field = None;
                 self.edit_buffer.clear();
                 self.edit_cursor = 0;

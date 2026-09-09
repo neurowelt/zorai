@@ -284,6 +284,10 @@ impl TuiModel {
                 return false;
             }
 
+            if self.settings.active_tab() == SettingsTab::Mcp && self.handle_mcp_settings_key(code, modifiers) {
+                return false;
+            }
+
             if self.settings.is_editing() && self.settings.active_tab() == SettingsTab::Plugins {
                 match code {
                     KeyCode::Enter => {
@@ -1084,6 +1088,8 @@ impl TuiModel {
                         self.send_daemon_command(DaemonCommand::GetConciergeConfig);
                     } else if matches!(next_tab, SettingsTab::Gateway) {
                         self.send_daemon_command(DaemonCommand::WhatsAppLinkStatus);
+                    } else if matches!(next_tab, SettingsTab::Mcp) {
+                        self.refresh_mcp_settings();
                     } else if matches!(next_tab, SettingsTab::Plugins) {
                         self.plugin_settings.list_mode = true;
                         self.send_daemon_command(DaemonCommand::PluginList);
@@ -1109,6 +1115,8 @@ impl TuiModel {
                         self.send_daemon_command(DaemonCommand::GetConciergeConfig);
                     } else if matches!(prev_tab, SettingsTab::Gateway) {
                         self.send_daemon_command(DaemonCommand::WhatsAppLinkStatus);
+                    } else if matches!(prev_tab, SettingsTab::Mcp) {
+                        self.refresh_mcp_settings();
                     } else if matches!(prev_tab, SettingsTab::Plugins) {
                         self.plugin_settings.list_mode = true;
                         self.send_daemon_command(DaemonCommand::PluginList);

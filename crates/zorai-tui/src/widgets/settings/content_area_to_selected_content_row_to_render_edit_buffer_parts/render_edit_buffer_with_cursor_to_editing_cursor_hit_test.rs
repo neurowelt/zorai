@@ -12,6 +12,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
 pub enum SettingsHitTarget {
     Tab(SettingsTab),
     Field(usize),
+    McpRow(usize),
     AuthProviderItem(usize),
     AuthAction {
         index: usize,
@@ -43,9 +44,9 @@ pub enum SubAgentTabAction {
     Toggle,
 }
 
-pub(crate) const TAB_LABELS: [&str; 14] = [
+pub(crate) const TAB_LABELS: [&str; 15] = [
     "Auth", "Svar", "Rar", "Tools", "Search", "Chat", "ML", "GW", "Sub", "Feat", "Adv", "Plug",
-    "DB", "About",
+    "MCP", "DB", "About",
 ];
 pub(crate) const TAB_DIVIDER: &str = " | ";
 
@@ -164,7 +165,9 @@ pub(crate) fn render(
     let paragraph = Paragraph::new(content_lines).scroll((scroll.min(u16::MAX as usize) as u16, 0));
     frame.render_widget(paragraph, chunks[2]);
 
-    let hints = if settings.is_editing() {
+    let hints = if settings.is_editing()
+        || (settings.active_tab() == SettingsTab::Mcp && settings.mcp.editing)
+    {
         Line::from(vec![
             Span::raw(" "),
             Span::styled("Enter", theme.fg_active),
@@ -350,6 +353,23 @@ pub(crate) fn hit_test(
     }
 
     let row = mouse.y.saturating_sub(chunks[2].y) as usize + scroll;
+    if settings.active_tab() == SettingsTab::Mcp {
+        if settings.mcp.editing {
+            return None;
+        }
+        if settings.mcp.draft.is_some() {
+            return crate::widgets::settings::render_mcp::mcp_editor_hit_test(
+                &settings.mcp,
+                row,
+                chunks[2].width,
+            )
+            .map(SettingsHitTarget::McpRow);
+        }
+        return row
+            .checked_sub(crate::widgets::settings::render_mcp::MCP_HEADER_ROWS)
+            .filter(|index| *index < settings.mcp.servers.len() + 1)
+            .map(SettingsHitTarget::McpRow);
+    }
     match settings_row_hit(settings, config, subagents, row) {
         Some((_, Some(subagent_index))) => {
             Some(SettingsHitTarget::SubAgentListItem(subagent_index))
@@ -384,8 +404,9 @@ pub(crate) fn active_tab_index(tab: SettingsTab) -> usize {
         SettingsTab::Features => 9,
         SettingsTab::Advanced => 10,
         SettingsTab::Plugins => 11,
-        SettingsTab::Database => 12,
-        SettingsTab::About => 13,
+        SettingsTab::Mcp => 12,
+        SettingsTab::Database => 13,
+        SettingsTab::About => 14,
     }
 }
 

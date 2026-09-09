@@ -10,6 +10,9 @@ impl DaemonClient {
         thread_detail_chunks: &mut Option<ThreadDetailChunkBuffer>,
     ) -> bool {
         match message {
+            message @ (DaemonMessage::McpServers { .. } | DaemonMessage::McpOperationResult { .. }) => {
+                let _ = event_tx.send(ClientEvent::Mcp(message)).await;
+            }
             message @ (DaemonMessage::AgentEvent { .. }
             | DaemonMessage::AgentThreadList { .. }
             | DaemonMessage::AgentThreadDetail { .. }

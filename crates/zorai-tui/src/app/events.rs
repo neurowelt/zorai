@@ -94,6 +94,12 @@ impl TuiModel {
         let hidden_auto_response_count_before = self.hidden_auto_response_suggestion_ids.len();
 
         self.tick_counter = self.tick_counter.saturating_add(elapsed_ticks.max(1));
+        if self.modal.top() == Some(modal::ModalKind::Settings)
+            && self.settings.active_tab() == SettingsTab::Mcp
+            && self.settings.mcp.last_refresh.is_none_or(|at| at.elapsed() >= Duration::from_secs(2))
+        {
+            self.refresh_mcp_settings();
+        }
         self.maybe_refresh_system_monitor();
         self.chat.clear_expired_copy_feedback(self.tick_counter);
         self.maybe_request_older_chat_history();

@@ -6,6 +6,10 @@ impl TuiModel {
         event: ClientEvent,
     ) -> Option<ClientEvent> {
         match event {
+            ClientEvent::Mcp(message) => {
+                self.handle_mcp_settings_event(message);
+                None
+            }
             ClientEvent::ProviderAuthStates(entries) => {
                 self.handle_provider_auth_states_event(entries);
                 None

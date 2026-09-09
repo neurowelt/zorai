@@ -1380,6 +1380,9 @@ fn start_daemon_bridge(
                             DaemonCommand::AuditDismiss { entry_id } => {
                                 let _ = client.dismiss_audit_entry(entry_id);
                             }
+                            DaemonCommand::Mcp(request) => {
+                                forward_bridge_command_result(&daemon_event_tx, "MCP settings", client.send(request));
+                            }
                             DaemonCommand::PluginList => {
                                 let _ = client.plugin_list();
                             }

@@ -131,7 +131,7 @@ fn close_clears_editing_and_dropdown() {
 
 #[test]
 fn all_tabs_hide_provider_variant() {
-    assert_eq!(SettingsTab::all().len(), 13);
+    assert_eq!(SettingsTab::all().len(), 15);
     assert!(!SettingsTab::all().contains(&SettingsTab::Provider));
     assert_eq!(SettingsTab::all()[0], SettingsTab::Auth);
     assert_eq!(SettingsTab::all()[1], SettingsTab::Agent);

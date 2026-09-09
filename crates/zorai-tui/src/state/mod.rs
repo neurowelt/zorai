@@ -14,6 +14,7 @@ pub mod input_refs;
 pub mod modal;
 pub mod notifications;
 pub mod settings;
+pub mod mcp_settings;
 pub mod sidebar;
 pub mod spawned_tree;
 pub mod statistics;
@@ -369,6 +370,7 @@ pub enum DaemonCommand {
     AuditDismiss {
         entry_id: String,
     },
+    Mcp(zorai_protocol::ClientMessage),
     PluginList,
     PluginGet(String),
     PluginInstallSource(String),

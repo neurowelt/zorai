@@ -72,6 +72,7 @@ mod memory_flush;
 mod memory_palace;
 mod messaging;
 mod metadata;
+mod mcp;
 pub(crate) mod mlflow_tracing;
 pub(crate) mod morphogenesis;
 mod notifications;

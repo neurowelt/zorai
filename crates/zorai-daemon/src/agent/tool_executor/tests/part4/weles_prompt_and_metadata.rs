@@ -34,6 +34,7 @@ async fn execute_tool_carries_weles_review_metadata_on_error_result() {
         temp_dir.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 

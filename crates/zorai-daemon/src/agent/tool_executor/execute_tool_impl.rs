@@ -1,4 +1,21 @@
 use super::*;
+
+const MCP_OUTPUT_MAX_BYTES: usize = 64 * 1024;
+
+fn bound_mcp_output(mut content: String) -> String {
+    if content.len() > MCP_OUTPUT_MAX_BYTES {
+        let total = content.len();
+        let marker = format!("\n\n[MCP output truncated; {total} bytes total]");
+        let mut end = MCP_OUTPUT_MAX_BYTES - marker.len();
+        while !content.is_char_boundary(end) {
+            end -= 1;
+        }
+        content.truncate(end);
+        content.push_str(&marker);
+    }
+    content
+}
+
 async fn maybe_emit_cli_wrapper_synthesis_proposal_notice(
     agent: &AgentEngine,
     event_tx: &broadcast::Sender<AgentEvent>,
@@ -1023,6 +1040,7 @@ fn pending_approval_for_weles_shell_block(
 }
 
 struct PreparedToolExecution {
+    mcp_route: Option<crate::mcp_client::McpToolRoute>,
     pub(crate) tool_name: String,
     pub(crate) args: serde_json::Value,
     pub(crate) dispatch_tool_name: String,
@@ -1040,6 +1058,7 @@ async fn prepare_tool_execution(
     agent: &AgentEngine,
     thread_id: &str,
     task_id: Option<&str>,
+    mcp_route: Option<crate::mcp_client::McpToolRoute>,
 ) -> Result<PreparedToolExecution, ToolResult> {
     let args = match parse_tool_args(
         tool_call.function.name.as_str(),
@@ -1062,8 +1081,27 @@ async fn prepare_tool_execution(
             });
         }
     };
-    let critique_classification =
-        crate::agent::weles_governance::classify_tool_call(tool_call.function.name.as_str(), &args);
+    let is_mcp = mcp_route.is_some();
+    if is_mcp {
+        if let Some(reason) = agent
+            .mcp_tool_scope_denial(&tool_call.function.name, task_id)
+            .await
+        {
+            return Err(ToolResult {
+                tool_call_id: tool_call.id.clone(),
+                name: tool_call.function.name.clone(),
+                content: format!("MCP call denied: {reason}. No request was sent."),
+                is_error: true,
+                weles_review: None,
+                pending_approval: None,
+            });
+        }
+    }
+    let critique_classification = if is_mcp {
+        mcp_governance_classification()
+    } else {
+        crate::agent::weles_governance::classify_tool_call(tool_call.function.name.as_str(), &args)
+    };
     let current_task = if let Some(task_id) = task_id {
         task_by_id_for_tool_scope(agent, task_id).await
     } else {
@@ -1335,11 +1373,15 @@ async fn prepare_tool_execution(
     }
     let security_level = {
         let config = agent.config.read().await;
-        crate::agent::weles_governance::security_level_for_tool_call(
-            &config,
-            effective_tool_name.as_str(),
-            &effective_args,
-        )
+        if is_mcp {
+            config.managed_execution.security_level
+        } else {
+            crate::agent::weles_governance::security_level_for_tool_call(
+                &config,
+                effective_tool_name.as_str(),
+                &effective_args,
+            )
+        }
     };
     crate::agent::weles_governance::stamp_shell_tool_security_level(
         effective_tool_name.as_str(),
@@ -1347,10 +1389,14 @@ async fn prepare_tool_execution(
         security_level,
     );
     let active_scope_id = crate::agent::agent_identity::current_agent_scope_id();
-    let governance_classification = crate::agent::weles_governance::classify_tool_call(
-        effective_tool_name.as_str(),
-        &effective_args,
-    );
+    let governance_classification = if is_mcp {
+        mcp_governance_classification()
+    } else {
+        crate::agent::weles_governance::classify_tool_call(
+            effective_tool_name.as_str(),
+            &effective_args,
+        )
+    };
     let governance_decision = if matches!(security_level, SecurityLevel::Yolo) {
         // YOLO is an operator-selected no-supervision mode. Do not spawn a
         // WELES review task, create an approval, or attach a synthetic
@@ -1541,6 +1587,7 @@ async fn prepare_tool_execution(
     };
 
     Ok(PreparedToolExecution {
+        mcp_route,
         tool_name: effective_tool_name,
         args: effective_args.clone(),
         dispatch_tool_name,
@@ -2204,7 +2251,10 @@ pub fn execute_tool<'a>(
     agent_data_dir: &'a std::path::Path,
     http_client: &'a reqwest::Client,
     cancel_token: Option<CancellationToken>,
+    mcp_execution: Option<(Option<SessionId>, Option<crate::mcp_client::McpToolRoute>)>,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ToolResult> + Send + 'a>> {
+    let (mcp_session_id, mcp_route) =
+        mcp_execution.unwrap_or_else(|| (session_id, agent.mcp.route(&tool_call.function.name)));
     Box::pin(async move {
         let redacted_arguments = scrub_sensitive(&tool_call.function.arguments);
         tracing::info!(
@@ -2213,11 +2263,31 @@ pub fn execute_tool<'a>(
             "agent tool call"
         );
 
-        let prepared =
-            match Box::pin(prepare_tool_execution(tool_call, agent, thread_id, task_id)).await {
-                Ok(prepared) => prepared,
-                Err(result) => return result,
-            };
+        let mcp_context = if let Some(route) = &mcp_route {
+            let context = agent.resolve_mcp_context(thread_id, mcp_session_id).await;
+            if let Err(error) = agent.mcp.preflight(route, &context) {
+                emit_mcp_failure(event_tx, thread_id, route, &error);
+                return ToolResult {
+                    tool_call_id: tool_call.id.clone(),
+                    name: tool_call.function.name.clone(),
+                    content: error.to_string(),
+                    is_error: true,
+                    weles_review: tool_call.weles_review.clone(),
+                    pending_approval: None,
+                };
+            }
+            Some(context)
+        } else {
+            None
+        };
+        let prepared = match Box::pin(prepare_tool_execution(
+            tool_call, agent, thread_id, task_id, mcp_route,
+        ))
+        .await
+        {
+            Ok(prepared) => prepared,
+            Err(result) => return result,
+        };
 
         let tool_domain =
             crate::agent::uncertainty::domains::classify_domain(tool_call.function.name.as_str());
@@ -2242,19 +2312,70 @@ pub fn execute_tool<'a>(
             });
         }
 
-        let (result, pending_approval) = Box::pin(dispatch_tool_execution(
-            &prepared,
-            agent,
-            thread_id,
-            task_id,
-            session_manager,
-            session_id,
-            event_tx,
-            agent_data_dir,
-            http_client,
-            cancel_token,
-        ))
-        .await;
+        let (result, pending_approval) = if let Some(route) = prepared.mcp_route.clone() {
+            if let Some(reason) = agent
+                .mcp_tool_scope_denial(&prepared.dispatch_tool_name, task_id)
+                .await
+            {
+                let error = crate::mcp_client::McpCallError::new(
+                    "MCP_SCOPE_DENIED",
+                    format!("MCP call denied: {reason}. No request was sent."),
+                );
+                emit_mcp_failure(event_tx, thread_id, &route, &error);
+                return ToolResult {
+                    tool_call_id: tool_call.id.clone(),
+                    name: tool_call.function.name.clone(),
+                    content: error.to_string(),
+                    is_error: true,
+                    weles_review: Some(prepared.governance_decision.review.clone()),
+                    pending_approval: None,
+                };
+            }
+            let context = mcp_context.expect("registered MCP route has captured context");
+            let outcome = agent
+                .mcp
+                .call(
+                    route.clone(),
+                    prepared.dispatch_args.clone(),
+                    context,
+                    cancel_token.clone().unwrap_or_default(),
+                )
+                .await;
+            let result = match outcome {
+                Ok(outcome) if !outcome.is_error => Ok(bound_mcp_output(outcome.content)),
+                Ok(outcome) => {
+                    let content = bound_mcp_output(outcome.content);
+                    let _ = event_tx.send(AgentEvent::WorkflowNotice {
+                        thread_id: thread_id.into(),
+                        kind: "mcp-remote-error".into(),
+                        message: format!("MCP server rejected the submitted request: {}", content),
+                        details: None,
+                    });
+                    Err(anyhow::anyhow!(content))
+                }
+                Err(error) => {
+                    tracing::warn!(server = %route.server_id, tool = %route.original_name, thread = %thread_id, code = %error.code, "MCP call failed");
+                    let message = bound_mcp_output(error.message);
+                    let _ = event_tx.send(AgentEvent::WorkflowNotice { thread_id: thread_id.into(), kind: "mcp-error".into(), message: message.clone(), details: Some(serde_json::json!({"server": route.server_id, "tool": route.original_name, "code": error.code}).to_string()) });
+                    Err(anyhow::anyhow!(message))
+                }
+            };
+            (result, None)
+        } else {
+            Box::pin(dispatch_tool_execution(
+                &prepared,
+                agent,
+                thread_id,
+                task_id,
+                session_manager,
+                session_id,
+                event_tx,
+                agent_data_dir,
+                http_client,
+                cancel_token,
+            ))
+            .await
+        };
 
         match result {
             Ok(content) => {
@@ -2264,6 +2385,11 @@ pub fn execute_tool<'a>(
                     } else {
                         content
                     };
+                let content = if prepared.mcp_route.is_some() {
+                    bound_mcp_output(content)
+                } else {
+                    content
+                };
                 let mut review = prepared.governance_decision.review.clone();
                 annotate_review_with_critique(
                     &mut review,
@@ -2284,19 +2410,21 @@ pub fn execute_tool<'a>(
                     prepared.dispatch_tool_name.as_str(),
                     &prepared.dispatch_args,
                 );
-                let notify_on_completion = prepared
-                    .dispatch_args
-                    .get("notify_on_completion")
-                    .and_then(|value| value.as_bool())
-                    .unwrap_or(true);
-                agent
-                    .register_operation_wakeups_from_tool_result(
-                        thread_id,
-                        prepared.dispatch_tool_name.as_str(),
-                        &content,
-                        notify_on_completion,
-                    )
-                    .await;
+                if prepared.mcp_route.is_none() {
+                    let notify_on_completion = prepared
+                        .dispatch_args
+                        .get("notify_on_completion")
+                        .and_then(|value| value.as_bool())
+                        .unwrap_or(true);
+                    agent
+                        .register_operation_wakeups_from_tool_result(
+                            thread_id,
+                            prepared.dispatch_tool_name.as_str(),
+                            &content,
+                            notify_on_completion,
+                        )
+                        .await;
+                }
                 if prepared.dispatch_tool_name.as_str() == tool_names::FETCH_URL {
                     maybe_emit_openapi_synthesis_proposal_notice(
                         agent,
@@ -2334,6 +2462,11 @@ pub fn execute_tool<'a>(
             }
             Err(e) => {
                 let content = scrub_sensitive(&format!("Error: {e}"));
+                let content = if prepared.mcp_route.is_some() {
+                    bound_mcp_output(content)
+                } else {
+                    content
+                };
                 tracing::warn!(tool = %prepared.tool_name, error = %content, "agent tool result: error");
                 let mut review = prepared.governance_decision.review.clone();
                 annotate_review_with_critique(
@@ -2360,4 +2493,24 @@ pub fn execute_tool<'a>(
             }
         }
     })
+}
+
+fn mcp_governance_classification() -> crate::agent::weles_governance::WelesToolClassification {
+    crate::agent::weles_governance::WelesToolClassification {
+        class: crate::agent::weles_governance::WelesGovernanceClass::GuardAlways,
+        reasons: vec![
+            "Remote MCP tool: server annotations and arguments cannot grant execution permission"
+                .into(),
+        ],
+    }
+}
+
+fn emit_mcp_failure(
+    event_tx: &broadcast::Sender<AgentEvent>,
+    thread_id: &str,
+    route: &crate::mcp_client::McpToolRoute,
+    error: &crate::mcp_client::McpCallError,
+) {
+    tracing::warn!(server = %route.server_id, tool = %route.original_name, thread = %thread_id, code = %error.code, "MCP call blocked before submission");
+    let _ = event_tx.send(AgentEvent::WorkflowNotice { thread_id: thread_id.into(), kind: "mcp-error".into(), message: error.message.clone(), details: Some(serde_json::json!({"server": route.server_id,"tool":route.original_name,"code":error.code}).to_string()) });
 }

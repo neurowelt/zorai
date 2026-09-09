@@ -144,7 +144,16 @@ fn apply_thread_profile_to_task_provider_override(
         return task_provider_override;
     }
     match task_provider_override {
-        Some((provider, model, system_prompt, def_id, transport, context_window, huggingface, base_url)) => {
+        Some((
+            provider,
+            model,
+            system_prompt,
+            def_id,
+            transport,
+            context_window,
+            huggingface,
+            base_url,
+        )) => {
             let provider_changed = profile_provider
                 .as_ref()
                 .is_some_and(|value| value != &provider);
@@ -159,18 +168,8 @@ fn apply_thread_profile_to_task_provider_override(
                 if provider_changed { None } else { base_url },
             ))
         }
-        None if has_task => profile_provider.map(|provider| {
-            (
-                provider,
-                profile_model,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-            )
-        }),
+        None if has_task => profile_provider
+            .map(|provider| (provider, profile_model, None, None, None, None, None, None)),
         other => other,
     }
 }
@@ -539,6 +538,12 @@ impl<'a> SendMessageRunner<'a> {
         let (tid, is_new_thread) = engine
             .get_or_create_thread(thread_id, stored_user_content)
             .await;
+        if engine.mcp_workspace_binding(&tid).await.is_some() {
+            engine.persist_thread_by_id(&tid).await;
+        }
+        if record_operator && !reuse_existing_user_message && initial_scheduled_retry_cycles == 0 {
+            engine.mcp.reset_pending_polls(&tid);
+        }
         ensure_thread_artifact_dirs(engine.history.data_root(), &tid).await?;
         engine.ensure_thread_messages_loaded(&tid).await;
         if let Some(client_surface) = client_surface {
@@ -877,9 +882,17 @@ impl<'a> SendMessageRunner<'a> {
         };
         let mut preferred_session_id =
             resolve_preferred_session_id(&engine.session_manager, preferred_session_hint).await;
+        let mut mcp_session_id =
+            preferred_session_hint
+                .filter(|hint| !hint.is_empty())
+                .map(|hint| {
+                    hint.parse::<zorai_protocol::SessionId>()
+                        .unwrap_or_else(|_| uuid::Uuid::nil())
+                });
         if let Some(task) = current_task_for_setup.as_ref() {
             match engine.ensure_isolated_task_workspace(&tid, task).await {
                 Ok(Some(isolated)) => {
+                    mcp_session_id = Some(uuid::Uuid::nil());
                     let sessions = engine.session_manager.list().await;
                     match select_isolated_task_session(
                         &sessions,
@@ -890,6 +903,7 @@ impl<'a> SendMessageRunner<'a> {
                     ) {
                         IsolatedTaskSessionPlan::Reuse(isolated_session) => {
                             preferred_session_id = Some(isolated_session.id);
+                            mcp_session_id = preferred_session_id;
                             let isolated_session_id = isolated_session.id.to_string();
                             if task.session_id.as_deref() != Some(isolated_session_id.as_str()) {
                                 let _ = engine
@@ -912,6 +926,7 @@ impl<'a> SendMessageRunner<'a> {
                             {
                                 Ok((isolated_session_id, _, _)) => {
                                     preferred_session_id = Some(isolated_session_id);
+                                    mcp_session_id = preferred_session_id;
                                     let _ = engine
                                         .bind_task_isolated_session(task, isolated_session_id)
                                         .await;
@@ -1405,7 +1420,13 @@ impl<'a> SendMessageRunner<'a> {
             spawn_background_community_scout(engine, &tid, stored_user_content, &config);
         }
         let has_workspace_topology = engine.session_manager.read_workspace_topology().is_some();
-        let mut tools = get_available_tools(&config, &engine.data_dir, has_workspace_topology);
+        let mcp_snapshot = engine.mcp.catalog_snapshot();
+        let mcp_routes = mcp_snapshot.routes.clone();
+        let mut tools = engine.effective_tools_from_mcp_snapshot(
+            &config,
+            has_workspace_topology,
+            &mcp_snapshot,
+        );
         crate::agent::tool_executor::filter_tools_for_client_surface(
             &mut tools,
             engine.get_thread_client_surface(&tid).await,
@@ -1512,6 +1533,8 @@ impl<'a> SendMessageRunner<'a> {
             config,
             provider_config,
             preferred_session_id,
+            mcp_session_id,
+            mcp_routes,
             onecontext_bootstrap,
             skill_preflight,
             agent_scope_id,

@@ -127,6 +127,8 @@ mod dispatch_part11;
 mod dispatch_part2;
 #[path = "server/dispatch_part3.rs"]
 mod dispatch_part3;
+#[path = "server/mcp.rs"]
+mod mcp;
 #[path = "server/dispatch_part4.rs"]
 mod dispatch_part4;
 #[path = "server/dispatch_part5.rs"]
@@ -221,6 +223,7 @@ fn client_message_variant_name(msg: &ClientMessage) -> &'static str {
         AgentSetMlflowTracingHeader { .. } => "AgentSetMlflowTracingHeader",
         AgentDeleteMlflowTracingHeader { .. } => "AgentDeleteMlflowTracingHeader",
         AgentEnqueuePrompt { .. } => "AgentEnqueuePrompt",
+        AgentSendMessageWithMcpContext { .. } => "AgentSendMessageWithMcpContext",
         AgentListPromptQueue { .. } => "AgentListPromptQueue",
         AgentUpdateQueuedPrompt { .. } => "AgentUpdateQueuedPrompt",
         AgentCancelQueuedPrompt { .. } => "AgentCancelQueuedPrompt",
@@ -432,6 +435,7 @@ where
                 DispatchOutcome::Continue => continue,
                 DispatchOutcome::Terminate => return Ok(()),
             }
+            if mcp::dispatch_mcp(&msg, &agent, &mut framed).await? { continue; }
             if dispatch_part3::dispatch_part3(
                 &msg,
                 &agent,

@@ -145,6 +145,7 @@ impl AgentEngine {
                 &self.data_dir,
                 &self.http_client,
                 None,
+                None,
             )
             .await;
 

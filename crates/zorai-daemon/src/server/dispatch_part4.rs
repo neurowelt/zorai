@@ -692,6 +692,7 @@ pub(crate) async fn dispatch_part4(
                 None,
                 limit.unwrap_or(50),
                 offset.unwrap_or(0),
+                &agent.mcp.catalog_snapshot().tools,
             );
             framed.send(DaemonMessage::AgentToolList { result }).await?;
         }
@@ -711,6 +712,7 @@ pub(crate) async fn dispatch_part4(
                 &query,
                 limit.unwrap_or(20),
                 offset.unwrap_or(0),
+                &agent.mcp.catalog_snapshot().tools,
             );
             framed
                 .send(DaemonMessage::AgentToolSearchResult { result })

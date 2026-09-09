@@ -82,7 +82,7 @@ pub async fn run() -> Result<()> {
 
     let agent_config = crate::agent::load_config_from_history(&history)
         .await
-        .unwrap_or_default();
+        .context("failed to load agent configuration")?;
 
     let manager =
         SessionManager::new_with_history(history.clone(), agent_config.pty_channel_capacity);
@@ -213,6 +213,7 @@ pub async fn run() -> Result<()> {
     };
 
     let _ = shutdown_tx.send(true);
+    agent.mcp.shutdown().await;
     agent.mlflow_tracing.shutdown().await;
 
     result

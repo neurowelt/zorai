@@ -4388,6 +4388,7 @@ async fn gateway_approval_reply_fast_path_resolves_pending_no_task_approval_and_
                 root.as_path(),
                 &engine.http_client,
                 None,
+                None,
             )
             .await
         },
@@ -4588,6 +4589,7 @@ async fn gateway_approval_reply_fast_path_accepts_no_task_approve_once_phrase_an
                 &engine.event_tx,
                 root.as_path(),
                 &engine.http_client,
+                None,
                 None,
             )
             .await
@@ -4790,6 +4792,7 @@ async fn gateway_approval_reply_fast_path_resolves_pending_no_task_session_appro
                 root.as_path(),
                 &engine.http_client,
                 None,
+                None,
             )
             .await
         },
@@ -4989,6 +4992,7 @@ async fn gateway_approval_reply_fast_path_accepts_no_task_approve_session_phrase
                 &engine.event_tx,
                 root.as_path(),
                 &engine.http_client,
+                None,
                 None,
             )
             .await
@@ -5190,6 +5194,7 @@ async fn gateway_approval_reply_fast_path_accepts_no_task_allow_session_alias_an
                 root.as_path(),
                 &engine.http_client,
                 None,
+                None,
             )
             .await
         },
@@ -5388,6 +5393,7 @@ async fn gateway_approval_reply_fast_path_accepts_no_task_allow_once_alias_and_n
                 &engine.event_tx,
                 root.as_path(),
                 &engine.http_client,
+                None,
                 None,
             )
             .await
@@ -5589,6 +5595,7 @@ async fn gateway_approval_reply_fast_path_accepts_no_task_reject_alias_and_notif
                 root.as_path(),
                 &engine.http_client,
                 None,
+                None,
             )
             .await
         },
@@ -5771,6 +5778,7 @@ async fn gateway_approval_reply_fast_path_accepts_no_task_denied_alias_and_notif
                 root.as_path(),
                 &engine.http_client,
                 None,
+                None,
             )
             .await
         },
@@ -5952,6 +5960,7 @@ async fn gateway_approval_reply_fast_path_denies_pending_no_task_approval_and_no
                 &engine.event_tx,
                 root.as_path(),
                 &engine.http_client,
+                None,
                 None,
             )
             .await

@@ -25,19 +25,64 @@ impl AgentEngine {
         config: AgentConfig,
         collisions: Vec<SubAgentDefinition>,
     ) -> AgentConfig {
+        self.persist_sanitized_config_with_mcp(config, collisions, true)
+            .await
+    }
+
+    pub(in crate::agent) async fn persist_sanitized_config_with_mcp(
+        &self,
+        config: AgentConfig,
+        collisions: Vec<SubAgentDefinition>,
+        update_mcp: bool,
+    ) -> AgentConfig {
+        let _mcp_guard = self.mcp_config_lock.lock().await;
         let mut config = config;
         sanitize_weles_builtin_overrides_struct(
             &mut config.builtin_sub_agents.weles,
             &config.system_prompt,
         );
+        let previous = self.config.read().await.mcp_servers.clone();
+        if !update_mcp {
+            config.mcp_servers = previous.clone();
+        }
+        let mut ids = std::collections::HashSet::new();
+        match config
+            .mcp_servers
+            .iter()
+            .cloned()
+            .map(|server| {
+                if !ids.insert(server.id.clone()) {
+                    return Err("Duplicate MCP server ID".to_string());
+                }
+                let old = previous.iter().find(|old| old.id == server.id);
+                let mut server = crate::mcp_client::normalize_config(server, old)?;
+                server.share_workspace_context &=
+                    old.is_some_and(|old| old.share_workspace_context);
+                Ok::<_, String>(server)
+            })
+            .collect::<std::result::Result<Vec<_>, _>>()
+        {
+            Ok(servers) => config.mcp_servers = servers,
+            Err(error) => {
+                tracing::warn!(%error, "invalid MCP config edit; retaining working servers");
+                config.mcp_servers = previous.clone();
+            }
+        }
         let items = config_to_items(&config);
         if let Err(error) = self.history.replace_agent_config_items(&items).await {
             tracing::warn!("failed to persist agent config to sqlite: {error}");
+            config.mcp_servers = previous.clone();
         }
         *self.config.write().await = config.clone();
         self.mlflow_tracing
             .reconfigure(config.mlflow_tracing.clone())
             .await;
+        if let Err(error) = self.mcp.apply_desired_config(config.mcp_servers.clone()) {
+            tracing::warn!(%error, "MCP config reconciliation failed");
+        }
+        if let Err(error) = self.mcp.cleanup_credentials(&previous, &config.mcp_servers) {
+            tracing::warn!(%error, "MCP credential cleanup failed");
+        }
         self.config_notify.notify_waiters();
         self.report_weles_collisions_once(&collisions).await;
         config
@@ -46,7 +91,8 @@ impl AgentEngine {
     pub(in crate::agent) async fn store_config_snapshot(&self, config: AgentConfig) -> AgentConfig {
         let mut config = config;
         let collisions = sanitize_weles_collisions_from_config(&mut config);
-        self.persist_sanitized_config(config, collisions).await
+        self.persist_sanitized_config_with_mcp(config, collisions, false)
+            .await
     }
 
     async fn audit_weles_collision(&self, def: &SubAgentDefinition) {
@@ -132,6 +178,9 @@ impl AgentEngine {
         key_path: &str,
         value_json: &str,
     ) -> Result<(AgentConfig, Value)> {
+        if key_path.trim_start_matches('/').starts_with("mcp_servers") {
+            anyhow::bail!("Use Settings → MCP to change MCP servers.");
+        }
         let value =
             serde_json::from_str::<Value>(value_json).context("invalid config item JSON")?;
         let mut merged_value = serde_json::to_value(self.get_config().await)?;
@@ -149,6 +198,9 @@ impl AgentEngine {
         value: &Value,
         merged: AgentConfig,
     ) -> Result<()> {
+        if key_path.trim_start_matches('/').starts_with("mcp_servers") {
+            anyhow::bail!("Use Settings → MCP to change MCP servers.");
+        }
         self.history
             .upsert_agent_config_item(key_path, &value)
             .await
@@ -156,7 +208,8 @@ impl AgentEngine {
 
         let mut merged = merged;
         let collisions = sanitize_weles_collisions_from_config(&mut merged);
-        self.persist_sanitized_config(merged, collisions).await;
+        self.persist_sanitized_config_with_mcp(merged, collisions, false)
+            .await;
 
         let mut projection = self.config_runtime_projection.lock().await;
         projection.desired_revision = projection.desired_revision.saturating_add(1);

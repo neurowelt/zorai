@@ -26,3 +26,5 @@ mod part9;
 pub(super) fn current_dir_test_lock() -> &'static std::sync::Mutex<()> {
     crate::test_support::env_test_mutex()
 }
+
+mod mcp;

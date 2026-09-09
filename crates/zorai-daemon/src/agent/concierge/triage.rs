@@ -170,6 +170,7 @@ impl ConciergeEngine {
                         &agent.data_dir,
                         &self.http_client,
                         None,
+                        None,
                     )
                     .await;
 

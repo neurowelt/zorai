@@ -134,7 +134,7 @@ impl AgentEngine {
                 .last()
                 .map(|message| message.content.chars().take(100).collect())
                 .unwrap_or_default(),
-            metadata_json: build_thread_metadata_json(
+            metadata_json: self.mcp_metadata_json(&thread.id, build_thread_metadata_json(
                 thread,
                 identity.as_ref(),
                 client_surface,
@@ -145,7 +145,7 @@ impl AgentEngine {
                 latest_skill_discovery_state.as_ref(),
                 prompt_memory_injection_state.as_ref(),
                 workspace_context.as_ref(),
-            ),
+            )).await,
         };
 
         let cutoff_ts = self

@@ -43,6 +43,7 @@ pub(crate) async fn dispatch_part3(
             | ClientMessage::CheckpointSession { .. }
             | ClientMessage::VerifyTelemetryIntegrity
             | ClientMessage::AgentSendMessage { .. }
+            | ClientMessage::AgentSendMessageWithMcpContext { .. }
             | ClientMessage::AgentDirectMessage { .. }
             | ClientMessage::AgentStopStream { .. }
             | ClientMessage::AgentForceCompact { .. }
@@ -53,7 +54,11 @@ pub(crate) async fn dispatch_part3(
     ) {
         return Ok(false);
     }
-    let msg = msg.clone();
+    let (msg, mcp_workspace) = match msg.clone() {
+        ClientMessage::AgentSendMessageWithMcpContext { thread_id, content, session_id, context_messages_json, content_blocks_json, client_surface, target_agent_id, mcp_workspace } =>
+            (ClientMessage::AgentSendMessage { thread_id, content, session_id, context_messages_json, content_blocks_json, client_surface, target_agent_id }, mcp_workspace),
+        msg => (msg, None),
+    };
 
     match msg {
         ClientMessage::ListAgentMessages {
@@ -695,6 +700,9 @@ pub(crate) async fn dispatch_part3(
             }
             if let Some(thread_id) = effective_thread_id.as_ref() {
                 client_agent_threads.insert(thread_id.clone());
+            }
+            if let (Some(thread_id), Some(root)) = (effective_thread_id.as_deref(), mcp_workspace) {
+                agent.bind_mcp_workspace(thread_id, root).await;
             }
             let agent = agent.clone();
             tokio::spawn(async move {

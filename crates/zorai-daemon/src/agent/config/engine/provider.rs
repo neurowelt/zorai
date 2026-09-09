@@ -96,7 +96,7 @@ impl AgentEngine {
     pub async fn persist_prepared_provider_model_json(&self, merged: AgentConfig) {
         let mut merged = merged;
         let collisions = sanitize_weles_collisions_from_config(&mut merged);
-        let _ = self.persist_sanitized_config(merged, collisions).await;
+        let _ = self.persist_sanitized_config_with_mcp(merged, collisions, false).await;
         let mut projection = self.config_runtime_projection.lock().await;
         projection.desired_revision = projection.desired_revision.saturating_add(1);
         projection.state = ConfigReconcileState::Reconciling;

@@ -254,8 +254,11 @@ pub(crate) fn list_available_tools_public(
     client_surface: Option<zorai_protocol::ClientSurface>,
     limit: usize,
     offset: usize,
+    mcp_tools: &[ToolDefinition],
 ) -> zorai_protocol::ToolListResultPublic {
     let mut tools = get_available_tools(config, agent_data_dir, has_workspace_topology);
+    let names: std::collections::HashSet<_> = tools.iter().map(|t| t.function.name.clone()).collect();
+    tools.extend(mcp_tools.iter().filter(|t| !names.contains(&t.function.name)).cloned());
     filter_tools_for_client_surface(&mut tools, client_surface);
     let total = tools.len();
     let limit = limit.clamp(1, 200);
@@ -282,10 +285,13 @@ pub(crate) fn search_available_tools_public(
     query: &str,
     limit: usize,
     offset: usize,
+    mcp_tools: &[ToolDefinition],
 ) -> zorai_protocol::ToolSearchResultPublic {
     let normalized_query = query.trim().to_ascii_lowercase();
     let tokens = query_tokens(&normalized_query);
     let mut tools = get_available_tools(config, agent_data_dir, has_workspace_topology);
+    let names: std::collections::HashSet<_> = tools.iter().map(|t| t.function.name.clone()).collect();
+    tools.extend(mcp_tools.iter().filter(|t| !names.contains(&t.function.name)).cloned());
     filter_tools_for_client_surface(&mut tools, client_surface);
     let mut matches = tools
         .into_iter()

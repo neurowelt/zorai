@@ -1,3 +1,4 @@
+use crate::agent::tool_executor::execute_tool;
 use super::*;
 use crate::agent::metacognitive::introspector::{
     introspect, IntrospectionInput, RecentToolOutcome,
@@ -817,6 +818,10 @@ impl<'a> SendMessageRunner<'a> {
             self.consecutive_same_tool_calls = self.consecutive_same_tool_calls.saturating_add(1);
             if self.consecutive_same_tool_calls >= 3
                 && !allows_repeated_identical_tool_calls(&tc.function.name)
+                && !self.engine.mcp.route(&tc.function.name).is_some_and(|route| {
+                    let args = serde_json::from_str(&tc.function.arguments).unwrap_or(serde_json::Value::Null);
+                    self.engine.mcp.allow_pending_poll(&route, &self.tid, &args)
+                })
             {
                 self.engine.emit_workflow_notice(
                     &self.tid,
@@ -847,6 +852,10 @@ impl<'a> SendMessageRunner<'a> {
                     &self.engine.data_dir,
                     &self.engine.http_client,
                     Some(self.stream_cancel_token.clone()),
+                    Some((
+                        self.mcp_session_id,
+                        self.mcp_routes.get(&tc.function.name).cloned(),
+                    )),
                 ))
                 .await
             }
@@ -863,6 +872,10 @@ impl<'a> SendMessageRunner<'a> {
                 &self.engine.data_dir,
                 &self.engine.http_client,
                 Some(self.stream_cancel_token.clone()),
+                Some((
+                    self.mcp_session_id,
+                    self.mcp_routes.get(&tc.function.name).cloned(),
+                )),
             ))
             .await
         };

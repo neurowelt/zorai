@@ -117,6 +117,7 @@ impl AgentEngine {
 
             let outcome = Box::pin(run_with_agent_scope(agent_scope_id, async move {
                 if thread_for_turn.as_deref() == Some(crate::agent::concierge::CONCIERGE_THREAD_ID)
+                    && !self.has_mcp_tools()
                 {
                     self.send_concierge_message_on_thread(
                         crate::agent::concierge::CONCIERGE_THREAD_ID,

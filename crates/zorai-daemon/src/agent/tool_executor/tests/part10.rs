@@ -128,6 +128,7 @@ async fn workspace_create_task_tool_persists_task_for_svarog_scope() {
             root.path(),
             &engine.http_client,
             None,
+            None,
         ),
     )
     .await;
@@ -180,6 +181,7 @@ async fn workspace_mutation_tool_is_rejected_outside_svarog_scope() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         ),
     )
@@ -244,6 +246,7 @@ async fn workspace_submit_review_tool_allows_assigned_reviewer_scope() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         ),
     )
@@ -313,6 +316,7 @@ async fn workspace_submit_completion_tool_allows_assigned_assignee_scope_and_que
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         ),
     )
@@ -402,6 +406,7 @@ async fn workspace_submit_completion_tool_rejects_non_assignee_scope() {
             root.path(),
             &engine.http_client,
             None,
+            None,
         ),
     )
     .await;
@@ -465,6 +470,7 @@ async fn workspace_submit_review_tool_rejects_non_reviewer_scope() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         ),
     )
@@ -562,6 +568,7 @@ async fn automatic_workspace_reviewer_can_complete_review_with_tool() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         ),
     )

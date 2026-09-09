@@ -206,7 +206,7 @@ fn cap_thread_detail_for_ipc(detail: ThreadDetailResult) -> ThreadDetailResult {
 }
 
 impl AgentEngine {
-    async fn persisted_thread_metadata(&self, thread_id: &str) -> Option<ParsedThreadMetadata> {
+    pub(super) async fn persisted_thread_metadata(&self, thread_id: &str) -> Option<ParsedThreadMetadata> {
         let metadata_json = match self.history.thread_metadata_json(thread_id).await {
             Ok(Some(metadata_json)) => Some(metadata_json),
             Ok(None) => match self.history.has_thread_id(thread_id).await {
@@ -1511,6 +1511,8 @@ impl AgentEngine {
             .await;
         self.threads.write().await.remove(thread_id);
         self.clear_thread_client_surface(thread_id).await;
+        self.mcp_bindings.write().await.remove(thread_id);
+        self.mcp.reset_pending_polls(thread_id);
         self.clear_thread_skill_discovery_state(thread_id).await;
         self.clear_thread_memory_injection_state(thread_id).await;
         self.clear_thread_structural_memory(thread_id).await;

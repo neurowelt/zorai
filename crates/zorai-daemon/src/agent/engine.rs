@@ -118,6 +118,9 @@ pub struct CritiqueApprovalContinuation {
 }
 
 pub struct AgentEngine {
+    pub(crate) mcp: Arc<crate::mcp_client::McpManager>,
+    pub(super) mcp_bindings: RwLock<HashMap<String, String>>,
+    pub(super) mcp_config_lock: Mutex<()>,
     pub started_at_ms: u64,
     pub config: Arc<RwLock<AgentConfig>>,
     pub http_client: reqwest::Client,
@@ -384,6 +387,8 @@ impl AgentEngine {
             super::config::derive_startup_config_runtime_projection(&config);
 
         let initial_mlflow_config = config.mlflow_tracing.clone();
+        let initial_mcp_config = config.mcp_servers.clone();
+        let mcp = Arc::new(crate::mcp_client::McpManager::new(data_dir.clone()));
         let config = Arc::new(RwLock::new(config));
         let mlflow_tracing =
             super::mlflow_tracing::MlflowTracingRuntime::new(&data_dir, &initial_mlflow_config);
@@ -395,6 +400,9 @@ impl AgentEngine {
         ));
 
         let engine = Arc::new(Self {
+            mcp: mcp.clone(),
+            mcp_bindings: RwLock::new(HashMap::new()),
+            mcp_config_lock: Mutex::new(()),
             started_at_ms: now_millis(),
             config,
             http_client,
@@ -537,6 +545,9 @@ impl AgentEngine {
         super::prompt_queue::spawn_prompt_queue_worker(engine.clone(), prompt_queue_wake_rx);
         super::prompt_queue::spawn_prompt_queue_startup_flush(engine.clone());
         super::messaging::spawn_internal_dm_worker(engine.clone(), internal_dm_jobs_rx);
+        if let Err(error) = mcp.apply_desired_config(initial_mcp_config) {
+            tracing::warn!(%error, "invalid saved MCP configuration");
+        }
         mlflow_tracing.start(
             Arc::downgrade(&engine),
             event_tx.subscribe(),

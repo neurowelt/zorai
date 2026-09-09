@@ -344,7 +344,14 @@ pub(crate) async fn execute_list_tools(
     let limit = parse_clamped_non_negative_usize_arg(args, "limit", 20, 200)?;
     let offset = parse_clamped_non_negative_usize_arg(args, "offset", 0, usize::MAX)?;
     let has_workspace_topology = session_manager.read_workspace_topology().is_some();
-    let config = agent.config.read().await;
+    let config = agent.get_config().await;
+    let mcp_scope = agent.mcp_scope_filter(task_id).await;
+    let mut mcp_tools = Vec::new();
+    for tool in &agent.mcp.catalog_snapshot().tools {
+        if mcp_scope(&tool.function.name).is_none() {
+            mcp_tools.push(tool.clone());
+        }
+    }
     let client_surface = resolve_shell_tool_client_surface(agent, thread_id, task_id).await;
     let result = list_available_tools_public(
         &config,
@@ -353,6 +360,7 @@ pub(crate) async fn execute_list_tools(
         client_surface,
         limit,
         offset,
+        &mcp_tools,
     );
     serde_json::to_string(&result)
         .map_err(|error| anyhow::anyhow!("failed to serialize tool list result: {error}"))
@@ -375,7 +383,14 @@ pub(crate) async fn execute_tool_search(
     let limit = parse_clamped_non_negative_usize_arg(args, "limit", 10, 200)?;
     let offset = parse_clamped_non_negative_usize_arg(args, "offset", 0, usize::MAX)?;
     let has_workspace_topology = session_manager.read_workspace_topology().is_some();
-    let config = agent.config.read().await;
+    let config = agent.get_config().await;
+    let mcp_scope = agent.mcp_scope_filter(task_id).await;
+    let mut mcp_tools = Vec::new();
+    for tool in &agent.mcp.catalog_snapshot().tools {
+        if mcp_scope(&tool.function.name).is_none() {
+            mcp_tools.push(tool.clone());
+        }
+    }
     let client_surface = resolve_shell_tool_client_surface(agent, thread_id, task_id).await;
     let result = search_available_tools_public(
         &config,
@@ -385,6 +400,7 @@ pub(crate) async fn execute_tool_search(
         query,
         limit,
         offset,
+        &mcp_tools,
     );
     serde_json::to_string(&result)
         .map_err(|error| anyhow::anyhow!("failed to serialize tool search result: {error}"))

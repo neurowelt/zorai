@@ -187,6 +187,7 @@ pub(crate) fn default_offload_tool_result_threshold_bytes() -> usize {
 impl Default for AgentConfig {
     fn default() -> Self {
         Self {
+            mcp_servers: Vec::new(),
             enabled: false,
             provider: default_provider(),
             base_url: String::new(),

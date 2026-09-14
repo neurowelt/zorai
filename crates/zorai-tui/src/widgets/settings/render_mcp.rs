@@ -60,28 +60,30 @@ pub(crate) fn render_mcp(
             2,
             "Authentication:",
             match draft.config.auth {
-                McpAuthConfig::None => "None / local peer".into(),
+                McpAuthConfig::None => "None".into(),
                 McpAuthConfig::Bearer { .. } => "Bearer token".into(),
-                McpAuthConfig::ApiKey { .. } => "Named API-key header".into(),
+                McpAuthConfig::ApiKey { .. } => "Custom HTTP header".into(),
             },
             "cycle",
             theme,
         );
-        push_field(
-            &mut lines,
-            state,
-            3,
-            "API-key header:",
-            value(
+        if state.visible_fields().contains(&3) {
+            push_field(
+                &mut lines,
+                state,
                 3,
-                match &draft.config.auth {
-                    McpAuthConfig::ApiKey { header, .. } => header.clone(),
-                    _ => "—".into(),
-                },
-            ),
-            "edit",
-            theme,
-        );
+                "Header name:",
+                value(
+                    3,
+                    match &draft.config.auth {
+                        McpAuthConfig::ApiKey { header, .. } => header.clone(),
+                        _ => "—".into(),
+                    },
+                ),
+                "edit",
+                theme,
+            );
+        }
         push_field(
             &mut lines,
             state,
@@ -91,16 +93,31 @@ pub(crate) fn render_mcp(
             "edit",
             theme,
         );
-        push_action(&mut lines, state, 5, "Clear credential", theme);
-        push_checkbox(&mut lines, state, 6, draft.config.enabled, "Enabled", theme);
+        push_section(&mut lines, "Connection controls", theme);
+        push_action(
+            &mut lines,
+            state,
+            6,
+            if draft.config.enabled {
+                "Disable"
+            } else {
+                "Enable"
+            },
+            theme,
+        );
         push_checkbox(
             &mut lines,
             state,
             7,
             draft.config.share_workspace_context,
-            "Share workspace context (path and conversation ID)",
+            "Share workspace context",
             theme,
         );
+        lines.push(Line::from(Span::styled(
+            "  Shares the workspace path and conversation ID.",
+            theme.fg_dim,
+        )));
+        push_section(&mut lines, "Tool discovery", theme);
         push_field(
             &mut lines,
             state,
@@ -113,16 +130,14 @@ pub(crate) fn render_mcp(
             "cycle",
             theme,
         );
-        push_action(
-            &mut lines,
-            state,
-            9,
-            "Test connection (isolated draft)",
-            theme,
-        );
+        push_section(&mut lines, "Actions", theme);
+        push_action(&mut lines, state, 9, "Test connection", theme);
         push_action(&mut lines, state, 10, "Save", theme);
-        push_action(&mut lines, state, 11, "Reconnect saved server", theme);
-        push_action(&mut lines, state, 12, "Back / discard draft", theme);
+        push_action(&mut lines, state, 11, "Reconnect", theme);
+        push_action(&mut lines, state, 12, "Back", theme);
+        if state.is_saved() {
+            push_action(&mut lines, state, 13, "Remove", theme);
+        }
 
         lines.push(Line::raw(""));
         lines.push(Line::from(Span::styled(
@@ -234,6 +249,33 @@ pub(crate) fn render_mcp(
     lines
 }
 
+fn push_section(lines: &mut Vec<Line<'static>>, label: &str, theme: &ThemeTokens) {
+    lines.push(Line::raw(""));
+    lines.push(Line::from(Span::styled(
+        format!("  {label}"),
+        theme.fg_active.add_modifier(ratatui::style::Modifier::BOLD),
+    )));
+}
+
+fn field_rows(state: &McpSettingsState) -> Vec<(usize, usize)> {
+    let mut row = MCP_HEADER_ROWS;
+    state
+        .visible_fields()
+        .into_iter()
+        .map(|index| {
+            if matches!(index, 6 | 8 | 9) {
+                row += 2;
+            }
+            if index == 8 {
+                row += 1;
+            }
+            let current = row;
+            row += 1;
+            (index, current)
+        })
+        .collect()
+}
+
 fn push_field(
     lines: &mut Vec<Line<'static>>,
     state: &McpSettingsState,
@@ -289,7 +331,7 @@ fn push_checkbox(
             },
         ),
         Span::styled(
-            if checked { "[x] " } else { "[ ] " },
+            if checked { "[ ON ] " } else { "[ OFF ] " },
             if checked {
                 theme.accent_success
             } else {
@@ -329,11 +371,19 @@ fn push_action(
             },
         ),
         Span::styled(
-            format!("[{label}]"),
+            format!(" {label} "),
             if selected {
-                theme.accent_primary
+                theme.accent_primary.add_modifier(
+                    ratatui::style::Modifier::REVERSED | ratatui::style::Modifier::BOLD,
+                )
+            } else if index == 13 {
+                theme
+                    .accent_danger
+                    .add_modifier(ratatui::style::Modifier::BOLD)
             } else {
-                theme.fg_active
+                theme
+                    .accent_secondary
+                    .add_modifier(ratatui::style::Modifier::BOLD)
             },
         ),
     ]));
@@ -391,7 +441,7 @@ fn push_tool(
             lines,
             "      ",
             if description.is_empty() {
-                "(No description provided.)"
+                "No description provided."
             } else {
                 description
             },
@@ -406,17 +456,16 @@ pub(crate) fn mcp_editor_hit_test(
     rendered_row: usize,
     content_width: u16,
 ) -> Option<usize> {
-    let fields_end = MCP_HEADER_ROWS + McpSettingsState::FIELDS;
-    if (MCP_HEADER_ROWS..fields_end).contains(&rendered_row) {
-        return Some(rendered_row - MCP_HEADER_ROWS);
+    let rows = field_rows(state);
+    if let Some((index, _)) = rows.iter().find(|(_, row)| *row == rendered_row) {
+        return Some(*index);
     }
-
-    let mut row = fields_end + 2;
+    let mut row = rows.last()?.1 + 3;
     for (index, tool) in state.status()?.tools.iter().enumerate() {
         let mut rows = 1;
         if state.expanded_tool == Some(index) {
             let description = if tool.description.is_empty() {
-                "(No description provided.)"
+                "No description provided."
             } else {
                 &tool.description
             };
@@ -509,7 +558,7 @@ mod tests {
             .collect::<Vec<_>>()
             .join("\n");
         assert!(!rendered.contains("super-secret-token"));
-        assert!(rendered.contains("replace on save"));
+        assert!(rendered.contains("••••••••"));
     }
 
     #[test]
@@ -576,10 +625,12 @@ mod tests {
         state.toggle_selected_tool_description();
         let theme = ThemeTokens::default();
         let lines = render_mcp(&state, 32, &theme);
-        let details = &lines[MCP_HEADER_ROWS + McpSettingsState::FIELDS..];
-        assert!(details
-            .iter()
-            .all(|line| UnicodeWidthStr::width(line.to_string().as_str()) <= 32));
+        let details = &lines[field_rows(&state).last().unwrap().1 + 1..];
+        assert!(
+            details
+                .iter()
+                .all(|line| UnicodeWidthStr::width(line.to_string().as_str()) <= 32)
+        );
         let tool_row = details
             .iter()
             .position(|line| line.to_string().contains("long_tool"))
@@ -618,9 +669,15 @@ mod tests {
         };
         state.servers = vec![status.clone()];
         state.open(Some(status));
-        let first_row = MCP_HEADER_ROWS + McpSettingsState::FIELDS + 2;
-        assert_eq!(mcp_editor_hit_test(&state, first_row, 24), Some(13));
-        assert_eq!(mcp_editor_hit_test(&state, first_row + 1, 24), Some(14));
+        let first_row = field_rows(&state).last().unwrap().1 + 3;
+        assert_eq!(
+            mcp_editor_hit_test(&state, first_row, 24),
+            Some(McpSettingsState::FIELDS)
+        );
+        assert_eq!(
+            mcp_editor_hit_test(&state, first_row + 1, 24),
+            Some(McpSettingsState::FIELDS + 1)
+        );
 
         state.cursor = McpSettingsState::FIELDS;
         state.toggle_selected_tool_description();
@@ -629,10 +686,46 @@ mod tests {
             24,
             6,
         );
-        assert_eq!(mcp_editor_hit_test(&state, first_row + 1, 24), Some(13));
+        assert_eq!(
+            mcp_editor_hit_test(&state, first_row + 1, 24),
+            Some(McpSettingsState::FIELDS)
+        );
         assert_eq!(
             mcp_editor_hit_test(&state, first_row + 1 + description_rows, 24),
-            Some(14)
+            Some(McpSettingsState::FIELDS + 1)
         );
     }
+}
+
+#[cfg(test)]
+#[test]
+fn mcp_spaced_controls_hit_their_rendered_rows() {
+    let mut state = McpSettingsState::default();
+    let server = zorai_protocol::McpServerStatus::default();
+    state.servers.push(server.clone());
+    state.open(Some(server));
+    let theme = ThemeTokens::default();
+    for (index, row) in field_rows(&state) {
+        state.cursor = index;
+        let lines = render_mcp(&state, 100, &theme);
+        assert!(
+            lines[row].to_string().starts_with("> "),
+            "field {index} at row {row}"
+        );
+        assert_eq!(mcp_editor_hit_test(&state, row, 100), Some(index));
+    }
+    let lines = render_mcp(&state, 100, &theme);
+    for (row, line) in lines.iter().enumerate() {
+        if line.to_string().is_empty() {
+            assert_eq!(mcp_editor_hit_test(&state, row, 100), None);
+        }
+    }
+    let text = lines
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(!text.contains("API-key header"));
+    assert!(!text.contains('('));
+    assert!(text.contains("Remove"));
 }

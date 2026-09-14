@@ -10,6 +10,8 @@ pub struct McpSettingsState {
     pub selected: usize,
     pub draft: Option<McpDraft>,
     pub cursor: usize,
+    pub close_after_save: bool,
+    pub removing: bool,
     pub expanded_tool: Option<usize>,
     pub editing: bool,
     pub edit_buffer: String,
@@ -26,7 +28,39 @@ pub struct McpDraft {
 }
 
 impl McpSettingsState {
-    pub const FIELDS: usize = 13;
+    pub const FIELDS: usize = 14;
+
+    pub fn is_saved(&self) -> bool {
+        self.draft
+            .as_ref()
+            .is_some_and(|draft| self.servers.iter().any(|s| s.config.id == draft.config.id))
+    }
+
+    pub fn visible_fields(&self) -> Vec<usize> {
+        (0..Self::FIELDS)
+            .filter(|index| match index {
+                3 => self
+                    .draft
+                    .as_ref()
+                    .is_some_and(|d| matches!(d.config.auth, McpAuthConfig::ApiKey { .. })),
+                5 => false,
+                13 => self.is_saved(),
+                _ => true,
+            })
+            .collect()
+    }
+
+    pub fn move_cursor(&mut self, forward: bool) {
+        let mut fields = self.visible_fields();
+        fields.extend(Self::FIELDS..Self::FIELDS + self.tool_count());
+        if let Some(next) = if forward {
+            fields.into_iter().find(|i| *i > self.cursor)
+        } else {
+            fields.into_iter().rev().find(|i| *i < self.cursor)
+        } {
+            self.cursor = next;
+        }
+    }
 
     pub fn open(&mut self, server: Option<McpServerStatus>) {
         self.changed();
@@ -61,6 +95,8 @@ impl McpSettingsState {
     }
 
     pub fn changed(&mut self) {
+        self.close_after_save = false;
+        self.removing = false;
         self.revision = self.revision.wrapping_add(1);
         self.pending = None;
         self.result = None;
@@ -111,6 +147,8 @@ impl McpSettingsState {
             4 => {
                 if !self.edit_buffer.is_empty() {
                     draft.credential = McpCredentialUpdate::Replace(self.edit_buffer.clone());
+                } else {
+                    draft.credential = McpCredentialUpdate::Clear;
                 }
             }
             _ => {}
@@ -130,10 +168,7 @@ impl McpSettingsState {
                     McpAuthConfig::None => McpAuthConfig::Bearer {
                         credential_ref: None,
                     },
-                    McpAuthConfig::Bearer { .. } => McpAuthConfig::ApiKey {
-                        header: "X-API-Key".into(),
-                        credential_ref: None,
-                    },
+                    McpAuthConfig::Bearer { .. } => McpAuthConfig::None,
                     McpAuthConfig::ApiKey { .. } => McpAuthConfig::None,
                 };
                 draft.credential = McpCredentialUpdate::Clear;
@@ -207,6 +242,15 @@ impl McpSettingsState {
             return false;
         }
         let saved = *save && success;
+        if saved && self.removing {
+            if let Some(draft) = &self.draft {
+                self.servers.retain(|s| s.config.id != draft.config.id);
+            }
+            self.selected = self.selected.min(self.servers.len());
+            self.close_draft();
+            self.result = Some((true, message));
+            return true;
+        }
         self.pending = None;
         self.result = Some((success, message));
         if saved {
@@ -226,6 +270,12 @@ impl McpSettingsState {
             }
         }
         self.test_status = if saved { None } else { server };
+        if saved && self.close_after_save {
+            self.close_draft();
+        } else {
+            self.close_after_save = false;
+            self.removing = false;
+        }
         saved
     }
 
@@ -273,20 +323,20 @@ impl McpSettingsState {
                         ..
                     },
                 ..
-            }) => "(choose an authentication mode first)",
+            }) => "Choose authentication first",
             Some(McpDraft {
                 credential: McpCredentialUpdate::Replace(_),
                 ..
-            }) => "•••••••• (replace on save)",
+            }) => "••••••••",
             Some(McpDraft {
                 credential: McpCredentialUpdate::Clear,
                 ..
-            }) => "(clear on save)",
+            }) => "Not set",
             Some(McpDraft {
                 credential_present: true,
                 ..
-            }) => "•••••••• (keep saved credential)",
-            _ => "(not set)",
+            }) => "••••••••",
+            _ => "Not set",
         }
     }
 }

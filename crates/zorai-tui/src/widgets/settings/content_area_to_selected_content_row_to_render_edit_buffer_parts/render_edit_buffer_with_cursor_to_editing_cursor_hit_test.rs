@@ -190,7 +190,7 @@ pub(crate) fn render(
             spans.push(Span::styled(" toggle  ", theme.fg_dim));
         }
         spans.extend([
-            Span::styled("Tab", theme.fg_active),
+            Span::styled("←→ / Tab", theme.fg_active),
             Span::styled(" switch tab  ", theme.fg_dim),
             Span::styled("Esc", theme.fg_active),
             Span::styled(" close", theme.fg_dim),

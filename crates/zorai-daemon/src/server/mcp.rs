@@ -80,6 +80,22 @@ pub(crate) async fn dispatch_mcp(
                 })
                 .await?;
         }
+        ClientMessage::McpRemoveServer {
+            request_id,
+            revision,
+            id,
+        } => {
+            let result = agent.remove_mcp_server(id).await;
+            framed
+                .send(DaemonMessage::McpOperationResult {
+                    request_id: request_id.clone(),
+                    revision: *revision,
+                    success: result.is_ok(),
+                    message: result.err().unwrap_or_else(|| "Removed".into()),
+                    server: None,
+                })
+                .await?;
+        }
         ClientMessage::McpSetServerEnabled { id, enabled } => {
             if let Err(message) = agent.set_mcp_server_enabled(id, *enabled).await {
                 framed.send(DaemonMessage::Error { message }).await?;
@@ -108,6 +124,49 @@ pub(crate) async fn dispatch_mcp(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn mcp_remove_persists_and_retires_server() {
+        let root = tempfile::tempdir().unwrap();
+        let sessions = SessionManager::new_test(root.path()).await;
+        let agent = crate::agent::AgentEngine::new_test(
+            sessions,
+            crate::agent::types::AgentConfig::default(),
+            root.path(),
+        )
+        .await;
+        let server = zorai_protocol::McpServerConfig {
+            id: "removable".into(),
+            name: "Removable".into(),
+            url: "http://127.0.0.1:1/mcp".into(),
+            enabled: false,
+            ..Default::default()
+        };
+        agent
+            .save_mcp_server(server, zorai_protocol::McpCredentialUpdate::Keep)
+            .await
+            .unwrap();
+        let (tx, mut rx) = mpsc::channel(2);
+        let mut writer = ConnectionWriter::new(tx);
+        dispatch_mcp(
+            &ClientMessage::McpRemoveServer {
+                request_id: "remove".into(),
+                revision: 1,
+                id: "removable".into(),
+            },
+            &agent,
+            &mut writer,
+        )
+        .await
+        .unwrap();
+        assert!(matches!(
+            rx.recv().await.unwrap(),
+            DaemonMessage::McpOperationResult { success: true, .. }
+        ));
+        assert!(agent.get_config().await.mcp_servers.is_empty());
+        assert!(agent.mcp.statuses().is_empty());
+        assert!(agent.remove_mcp_server("removable").await.is_err());
+    }
 
     #[tokio::test]
     async fn mcp_failed_save_does_not_attach_previous_server_status() {

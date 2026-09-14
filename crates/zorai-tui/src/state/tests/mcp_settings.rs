@@ -95,7 +95,7 @@ fn mcp_edit_and_reopened_draft_discard_stale_tests() {
 fn mcp_secret_edits_distinguish_keep_replace_clear_without_mask_values() {
     let mut state = McpSettingsState::default();
     state.open(Some(saved_server()));
-    assert!(state.secret_label().contains("keep saved"));
+    assert_eq!(state.secret_label(), "••••••••");
     assert!(matches!(
         state.draft.as_ref().unwrap().credential,
         McpCredentialUpdate::Keep
@@ -106,7 +106,7 @@ fn mcp_secret_edits_distinguish_keep_replace_clear_without_mask_values() {
     state.commit_edit();
     assert!(matches!(
         state.draft.as_ref().unwrap().credential,
-        McpCredentialUpdate::Keep
+        McpCredentialUpdate::Clear
     ));
     state.begin_edit();
     state.edit_buffer = "new-token".into();
@@ -133,8 +133,9 @@ fn mcp_secret_edits_distinguish_keep_replace_clear_without_mask_values() {
         state.draft.as_ref().unwrap().credential,
         McpCredentialUpdate::Keep
     );
-    state.cursor = 5;
-    state.toggle();
+    state.cursor = 4;
+    state.begin_edit();
+    state.commit_edit();
     let ClientMessage::McpSaveServer { credential, .. } = state.request(true).unwrap() else {
         panic!("save request");
     };

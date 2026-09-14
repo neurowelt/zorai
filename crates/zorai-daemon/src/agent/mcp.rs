@@ -20,6 +20,31 @@ impl AgentEngine {
         self.save_mcp_server_locked(server, credential).await
     }
 
+    pub(crate) async fn remove_mcp_server(&self, id: &str) -> std::result::Result<(), String> {
+        let _guard = self.mcp_config_lock.lock().await;
+        let mut config = self.get_config().await;
+        let previous = config.mcp_servers.clone();
+        config.mcp_servers.retain(|server| server.id != id);
+        if config.mcp_servers.len() == previous.len() {
+            return Err("Unknown MCP server".into());
+        }
+        self.history
+            .replace_agent_config_items(&super::config::config_to_items(&config))
+            .await
+            .map_err(|_| {
+                "Could not remove MCP server; working configuration was retained.".to_string()
+            })?;
+        *self.config.write().await = config.clone();
+        if let Err(error) = self.mcp.apply_desired_config(config.mcp_servers.clone()) {
+            tracing::warn!(%error, "MCP reconciliation failed after removal");
+        }
+        if let Err(error) = self.mcp.cleanup_credentials(&previous, &config.mcp_servers) {
+            tracing::warn!(%error, "MCP credential cleanup failed after removal");
+        }
+        self.config_notify.notify_waiters();
+        Ok(())
+    }
+
     pub(crate) async fn set_mcp_server_enabled(
         &self,
         id: &str,

@@ -36,6 +36,28 @@ impl TuiModel {
         }
     }
 
+    fn save_and_leave_mcp(&mut self) {
+        let state = &mut self.settings.mcp;
+        if state.editing {
+            state.commit_edit();
+        }
+        let unchanged = state.draft.as_ref().is_some_and(|draft| {
+            matches!(draft.credential, zorai_protocol::McpCredentialUpdate::Keep)
+                && state
+                    .servers
+                    .iter()
+                    .any(|server| server.config == draft.config)
+        });
+        if unchanged {
+            state.close_draft();
+            return;
+        }
+        if let Some(request) = state.request(true) {
+            state.close_after_save = true;
+            self.send_daemon_command(DaemonCommand::Mcp(request));
+        }
+    }
+
     pub(crate) fn handle_mcp_settings_key(
         &mut self,
         code: KeyCode,
@@ -47,6 +69,9 @@ impl TuiModel {
             return true;
         }
         let state = &mut self.settings.mcp;
+        if state.pending.as_ref().is_some_and(|(_, _, save)| *save) {
+            return true;
+        }
         if state.editing {
             match code {
                 KeyCode::Enter => state.commit_edit(),
@@ -66,7 +91,10 @@ impl TuiModel {
             }
             return true;
         }
-        if matches!(code, KeyCode::Tab | KeyCode::BackTab) {
+        if matches!(
+            code,
+            KeyCode::Tab | KeyCode::BackTab | KeyCode::Left | KeyCode::Right
+        ) {
             return false;
         }
         if matches!(code, KeyCode::PageDown | KeyCode::PageUp) {
@@ -107,9 +135,9 @@ impl TuiModel {
             }
         } else {
             match code {
-                KeyCode::Esc => state.close_draft(),
-                KeyCode::Down => state.cursor = (state.cursor + 1).min(state.last_cursor()),
-                KeyCode::Up => state.cursor = state.cursor.saturating_sub(1),
+                KeyCode::Esc => self.save_and_leave_mcp(),
+                KeyCode::Down => state.move_cursor(true),
+                KeyCode::Up => state.move_cursor(false),
                 KeyCode::Enter | KeyCode::Char(' ') if state.toggle_selected_tool_description() => {
                 }
                 KeyCode::Enter | KeyCode::Char(' ') => match state.cursor {
@@ -136,7 +164,23 @@ impl TuiModel {
                             }
                         }
                     }
-                    12 => state.close_draft(),
+                    12 => self.save_and_leave_mcp(),
+                    13 if state.is_saved() => {
+                        let id = state.draft.as_ref().unwrap().config.id.clone();
+                        let request_id = uuid::Uuid::new_v4().to_string();
+                        state.changed();
+                        let revision = state.revision;
+                        state.pending = Some((request_id.clone(), revision, true));
+                        state.removing = true;
+                        state.result = Some((true, "Removing…".into()));
+                        self.send_daemon_command(DaemonCommand::Mcp(
+                            ClientMessage::McpRemoveServer {
+                                id,
+                                request_id,
+                                revision,
+                            },
+                        ));
+                    }
                     _ => {}
                 },
                 _ => {}
@@ -159,9 +203,12 @@ mod tests {
         let mut model = TuiModel::new(event_rx, daemon_tx);
         model.open_settings_tab(SettingsTab::Mcp);
         let commands: Vec<_> = std::iter::from_fn(|| daemon_rx.try_recv().ok()).collect();
-        assert!(commands
-            .iter()
-            .any(|command| matches!(command, DaemonCommand::Mcp(ClientMessage::McpListServers))));
+        assert!(
+            commands.iter().any(|command| matches!(
+                command,
+                DaemonCommand::Mcp(ClientMessage::McpListServers)
+            ))
+        );
         model.handle_mcp_settings_key(KeyCode::Char('a'), KeyModifiers::NONE);
         model.handle_mcp_settings_key(KeyCode::Enter, KeyModifiers::NONE);
         model.handle_paste("Local mock".into());
@@ -364,5 +411,105 @@ mod tests {
         assert_eq!(model.settings.mcp.selected_tool(), Some(1));
         model.handle_mcp_settings_key(KeyCode::Enter, KeyModifiers::NONE);
         assert_eq!(model.settings.mcp.expanded_tool, Some(1));
+    }
+}
+
+#[cfg(test)]
+mod editor_regression_tests {
+    use super::*;
+
+    #[test]
+    fn mcp_back_saves_and_keeps_failed_drafts_for_retry() {
+        let (_, event_rx) = std::sync::mpsc::channel();
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+        let mut model = TuiModel::new(event_rx, tx);
+        model.settings.mcp.open(None);
+        model.settings.mcp.draft.as_mut().unwrap().config.name = "My server".into();
+        for success in [false, true] {
+            model.settings.mcp.cursor = 12;
+            model.handle_mcp_settings_key(KeyCode::Enter, KeyModifiers::NONE);
+            let DaemonCommand::Mcp(ClientMessage::McpSaveServer {
+                request_id,
+                revision,
+                config,
+                ..
+            }) = rx.try_recv().unwrap()
+            else {
+                panic!("save")
+            };
+            assert_eq!(config.name, "My server");
+            assert!(model.settings.mcp.draft.is_some());
+            model.handle_mcp_settings_event(DaemonMessage::McpOperationResult {
+                request_id,
+                revision,
+                success,
+                message: "result".into(),
+                server: None,
+            });
+            assert_eq!(model.settings.mcp.draft.is_none(), success);
+        }
+    }
+
+    #[test]
+    fn mcp_remove_waits_for_success_and_retains_failed_connection() {
+        let (_, event_rx) = std::sync::mpsc::channel();
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+        let mut model = TuiModel::new(event_rx, tx);
+        let server = zorai_protocol::McpServerStatus::default();
+        model.settings.mcp.servers.push(server.clone());
+        model.settings.mcp.open(Some(server));
+        for success in [false, true] {
+            model.settings.mcp.cursor = 13;
+            model.handle_mcp_settings_key(KeyCode::Enter, KeyModifiers::NONE);
+            let DaemonCommand::Mcp(ClientMessage::McpRemoveServer {
+                request_id,
+                revision,
+                ..
+            }) = rx.try_recv().unwrap()
+            else {
+                panic!("remove")
+            };
+            model.handle_mcp_settings_event(DaemonMessage::McpOperationResult {
+                request_id,
+                revision,
+                success,
+                message: "result".into(),
+                server: None,
+            });
+            assert_eq!(model.settings.mcp.draft.is_none(), success);
+            assert_eq!(model.settings.mcp.servers.is_empty(), success);
+        }
+    }
+
+    #[test]
+    fn mcp_settings_arrows_switch_tabs_but_stay_in_text_edits() {
+        let (_, event_rx) = std::sync::mpsc::channel();
+        let (tx, _) = tokio::sync::mpsc::unbounded_channel();
+        let mut model = TuiModel::new(event_rx, tx);
+        for tab in SettingsTab::all() {
+            model.open_settings_tab(*tab);
+            model.handle_key_modal(
+                KeyCode::Right,
+                KeyModifiers::NONE,
+                modal::ModalKind::Settings,
+            );
+            assert_ne!(model.settings.active_tab(), *tab);
+            model.handle_key_modal(
+                KeyCode::Left,
+                KeyModifiers::NONE,
+                modal::ModalKind::Settings,
+            );
+            assert_eq!(model.settings.active_tab(), *tab);
+        }
+        model.open_settings_tab(SettingsTab::Mcp);
+        model.settings.mcp.open(None);
+        model.settings.mcp.begin_edit();
+        model.handle_key_modal(
+            KeyCode::Right,
+            KeyModifiers::NONE,
+            modal::ModalKind::Settings,
+        );
+        assert_eq!(model.settings.active_tab(), SettingsTab::Mcp);
+        assert!(model.settings.mcp.editing);
     }
 }

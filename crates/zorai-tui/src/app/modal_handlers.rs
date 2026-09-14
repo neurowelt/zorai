@@ -1041,6 +1041,12 @@ impl TuiModel {
                 return false;
             }
 
+            let code = match code {
+                KeyCode::Right => KeyCode::Tab,
+                KeyCode::Left => KeyCode::BackTab,
+                code => code,
+            };
+
             match self.settings.active_tab() {
                 SettingsTab::Auth => {
                     if self.handle_auth_settings_key(code) {

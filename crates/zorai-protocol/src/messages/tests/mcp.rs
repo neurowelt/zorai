@@ -236,3 +236,15 @@ fn mcp_auth_modes_round_trip_as_credential_references() {
         );
     }
 }
+
+#[test]
+fn mcp_remove_round_trips_at_append_only_tail() {
+    assert_client_round_trip(
+        ClientMessage::McpRemoveServer {
+            request_id: "remove".into(),
+            revision: 9,
+            id: "stable-server".into(),
+        },
+        255,
+    );
+}

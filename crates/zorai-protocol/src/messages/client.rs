@@ -323,4 +323,5 @@ pub enum ClientMessage {
     McpTestServer { request_id: String, revision: u64, config: super::McpServerConfig, credential: super::McpCredentialUpdate },
     McpSetServerEnabled { id: String, enabled: bool },
     McpReconnectServer { id: String },
+    McpRemoveServer { request_id: String, revision: u64, id: String },
 }

@@ -11,7 +11,12 @@ use zorai_protocol::tool_names as tn;
 
 use super::ToolDefinition;
 
-pub(crate) const META_TOOL_NAMES: &[&str] = &[tn::TOOL_SEARCH, tn::LIST_TOOLS, tn::LOAD_TOOLS];
+pub(crate) const META_TOOL_NAMES: &[&str] = &[
+    tn::TOOL_SEARCH,
+    tn::LIST_TOOLS,
+    tn::LOAD_TOOLS,
+    tn::LIST_MCP_SERVERS,
+];
 
 const DEFERRABLE_GROUPS: &[&[&str]] = &[
     tn::ROUTINE_TOOLS,

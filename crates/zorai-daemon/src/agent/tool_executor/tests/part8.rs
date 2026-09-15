@@ -83,6 +83,7 @@ async fn critique_preflight_blocks_risky_bash_command_when_enabled() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -197,6 +198,7 @@ async fn get_critique_session_tool_returns_persisted_blocked_preflight_payload()
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -237,6 +239,7 @@ async fn get_critique_session_tool_returns_persisted_blocked_preflight_payload()
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -296,6 +299,7 @@ async fn critique_preflight_skips_non_guarded_read_file_even_when_enabled() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -690,6 +694,7 @@ async fn search_soul_results_are_bounded_by_limit() {
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -771,6 +776,7 @@ async fn search_memory_skips_fresh_injected_base_markdown_by_default() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -872,6 +878,7 @@ async fn search_memory_later_enabled_layers_still_contribute_when_earlier_layers
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -959,6 +966,7 @@ async fn search_soul_marks_truncated_when_base_markdown_collection_hits_cap() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1057,6 +1065,7 @@ async fn search_memory_thread_structural_entries_are_not_starved_by_language_hin
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1115,6 +1124,7 @@ async fn ask_questions_tool_waits_for_operator_choice() {
             &event_tx,
             root.path(),
             &engine_for_task.http_client,
+            None,
             None,
         )
         .await
@@ -1177,6 +1187,7 @@ async fn discover_skills_tool_returns_discovery_result() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1249,6 +1260,7 @@ async fn read_skill_accepts_multiple_skills_in_one_call() {
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1320,6 +1332,7 @@ async fn list_skills_reads_catalog_without_blocking_sync() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1397,6 +1410,7 @@ async fn read_skill_uses_workspace_root_when_session_is_absent() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1481,6 +1495,7 @@ async fn read_skill_clears_stale_variant_gate_when_same_skill_family_is_read() {
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1543,6 +1558,7 @@ async fn read_skill_resolves_nested_skill_by_frontmatter_name() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1629,6 +1645,7 @@ async fn read_skill_falls_back_when_selected_variant_path_is_stale() {
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1696,6 +1713,7 @@ async fn read_skill_records_graph_links_for_consulted_skill_variant() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1792,6 +1810,7 @@ async fn read_skill_surfaces_variant_fitness_snapshot_for_operator_inspection() 
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2092,6 +2111,7 @@ async fn list_tools_tool_returns_paginated_catalog() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -2165,6 +2185,7 @@ async fn routine_tools_round_trip_create_preview_run_history_get() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -2201,6 +2222,7 @@ async fn routine_tools_round_trip_create_preview_run_history_get() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2244,6 +2266,7 @@ async fn routine_tools_round_trip_create_preview_run_history_get() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     assert!(
@@ -2278,6 +2301,7 @@ async fn routine_tools_round_trip_create_preview_run_history_get() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2316,6 +2340,7 @@ async fn routine_tools_round_trip_create_preview_run_history_get() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2370,6 +2395,7 @@ async fn add_trigger_tool_returns_custom_source_label() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -2410,6 +2436,7 @@ async fn whatsapp_link_control_tools_start_stop_reset_and_status() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     assert!(
@@ -2439,6 +2466,7 @@ async fn whatsapp_link_control_tools_start_stop_reset_and_status() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     assert!(
@@ -2462,6 +2490,7 @@ async fn whatsapp_link_control_tools_start_stop_reset_and_status() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2493,6 +2522,7 @@ async fn whatsapp_link_control_tools_start_stop_reset_and_status() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2548,6 +2578,7 @@ async fn whatsapp_link_control_tools_start_stop_reset_and_status() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     assert!(
@@ -2601,6 +2632,7 @@ async fn list_triggers_tool_surfaces_packaged_defaults_without_manual_seeding() 
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2663,6 +2695,7 @@ async fn ingest_webhook_event_tool_routes_seeded_default_trigger_without_manual_
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2736,6 +2769,7 @@ persona: helpful migration assistant
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     assert!(
@@ -2782,6 +2816,7 @@ persona: helpful migration assistant
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2919,6 +2954,7 @@ persona: helpful migration assistant
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3031,6 +3067,7 @@ persona: helpful migration assistant
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3109,6 +3146,7 @@ async fn tool_search_returns_ranked_matches() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3163,6 +3201,7 @@ async fn list_threads_tool_rejects_negative_offset() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3198,6 +3237,7 @@ async fn list_threads_tool_rejects_negative_limit() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -3273,6 +3313,7 @@ async fn get_thread_tool_returns_truncated_thread_detail() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -3368,6 +3409,7 @@ async fn get_thread_tool_applies_offset_from_most_recent_messages() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3445,6 +3487,7 @@ async fn get_thread_tool_masks_hidden_internal_threads_without_include_internal(
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3478,6 +3521,7 @@ async fn get_thread_tool_requires_thread_id_argument() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -3582,6 +3626,7 @@ async fn read_offloaded_payload_tool_reads_canonical_path_even_if_metadata_stora
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3618,6 +3663,7 @@ async fn read_offloaded_payload_tool_reads_canonical_path_even_if_metadata_stora
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -3732,6 +3778,7 @@ async fn read_offloaded_payload_tool_defaults_to_compact_thread_payload_and_full
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3795,6 +3842,7 @@ async fn read_offloaded_payload_tool_defaults_to_compact_thread_payload_and_full
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -3879,6 +3927,7 @@ async fn fetch_gateway_history_returns_paged_window_metadata() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3961,6 +4010,7 @@ async fn read_offloaded_payload_tool_rejects_cross_thread_metadata_reads() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -4029,6 +4079,7 @@ async fn read_offloaded_payload_tool_rejects_paths_that_escape_the_daemon_root()
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -4103,6 +4154,7 @@ async fn read_offloaded_payload_tool_rejects_payload_ids_that_escape_the_caller_
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -4475,6 +4527,7 @@ async fn read_offloaded_payload_paginates_generic_json_arrays_by_default() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -4547,6 +4600,7 @@ async fn large_read_offloaded_payload_result_can_be_reoffloaded_from_thread_mess
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -5881,6 +5935,7 @@ async fn critique_fallback_apply_patch_rewrites_shell_execution_when_patch_paylo
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -5962,6 +6017,7 @@ async fn critique_fallback_replace_in_file_rewrites_shell_execution_when_args_ar
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -6138,6 +6194,7 @@ async fn approving_critique_confirmation_resumes_switch_model_without_retriggeri
                 root.path(),
                 &engine.http_client,
                 None,
+                None,
             )
             .await
         },
@@ -6233,6 +6290,7 @@ async fn critique_confirmation_marker_returns_pending_approval_for_plugin_api_ca
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -6294,6 +6352,7 @@ async fn critique_confirmation_marker_returns_pending_approval_for_synthesize_to
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -6359,6 +6418,7 @@ async fn critique_confirmation_marker_returns_pending_approval_for_switch_model(
                 &event_tx,
                 root.path(),
                 &engine.http_client,
+                None,
                 None,
             )
             .await
@@ -6428,6 +6488,7 @@ async fn injected_critique_bypass_marker_is_blocked_for_guard_always_tool_execut
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -6485,6 +6546,7 @@ async fn critique_confirmation_marker_stops_switch_model_execution_before_dispat
                 &event_tx,
                 root.path(),
                 &engine.http_client,
+                None,
                 None,
             )
             .await
@@ -6878,6 +6940,7 @@ async fn critique_modifications_strip_explicit_discord_target_before_governance(
             root.path(),
             &send_engine.http_client,
             None,
+            None,
         )
         .await
     });
@@ -6999,6 +7062,7 @@ async fn critique_modifications_schedule_enqueue_task_for_operator_window_end_to
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -7100,6 +7164,7 @@ async fn critique_modifications_constrain_spawn_subagent_budget_end_to_end() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -7182,6 +7247,7 @@ async fn critique_modifications_schedule_spawn_subagent_for_operator_window_end_
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -7291,6 +7357,7 @@ async fn critique_modifications_use_typed_directives_for_spawn_subagent_budget_e
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -7357,6 +7424,7 @@ async fn critique_modifications_use_typed_directive_for_spawn_subagent_schedule_
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -7457,6 +7525,7 @@ async fn critique_modifications_narrow_sensitive_write_file_path_from_prose_only
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -7546,6 +7615,7 @@ async fn critique_modifications_narrow_sensitive_write_file_path_end_to_end() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -7784,6 +7854,7 @@ async fn routine_tools_update_rerun_and_validation_flow() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     assert!(invalid_result.is_error, "invalid create should fail");
@@ -7821,6 +7892,7 @@ async fn routine_tools_update_rerun_and_validation_flow() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     assert!(
@@ -7857,6 +7929,7 @@ async fn routine_tools_update_rerun_and_validation_flow() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     assert!(
@@ -7889,6 +7962,7 @@ async fn routine_tools_update_rerun_and_validation_flow() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -7924,6 +7998,7 @@ async fn routine_tools_update_rerun_and_validation_flow() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -7961,6 +8036,7 @@ async fn routine_tools_update_rerun_and_validation_flow() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -8015,6 +8091,7 @@ async fn routine_tools_pause_resume_delete_round_trip() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     assert!(
@@ -8043,6 +8120,7 @@ async fn routine_tools_pause_resume_delete_round_trip() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -8078,6 +8156,7 @@ async fn routine_tools_pause_resume_delete_round_trip() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     assert!(
@@ -8112,6 +8191,7 @@ async fn routine_tools_pause_resume_delete_round_trip() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     assert!(
@@ -8141,6 +8221,7 @@ async fn routine_tools_pause_resume_delete_round_trip() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;

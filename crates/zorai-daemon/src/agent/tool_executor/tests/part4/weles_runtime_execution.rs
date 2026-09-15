@@ -151,6 +151,7 @@ async fn execute_tool_allows_low_risk_shell_python_without_forcing_python_execut
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -203,6 +204,7 @@ async fn execute_tool_low_risk_shell_python_stays_allow_under_yolo() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -266,6 +268,7 @@ async fn execute_tool_suspicious_shell_python_uses_weles_runtime_structured_bloc
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -367,6 +370,7 @@ async fn execute_tool_shell_python_bypass_under_yolo_never_downgrades_to_managed
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -415,6 +419,7 @@ async fn execute_tool_python_execute_runs_code_and_preserves_weles_metadata() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -483,6 +488,7 @@ async fn execute_tool_yolo_downgrades_suspicious_reviewed_allow_to_flag_only() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     let normal_review = normal_result
@@ -516,6 +522,7 @@ async fn execute_tool_yolo_downgrades_suspicious_reviewed_allow_to_flag_only() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;

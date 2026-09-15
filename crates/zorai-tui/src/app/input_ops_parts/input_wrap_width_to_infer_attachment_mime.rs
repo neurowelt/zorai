@@ -55,6 +55,13 @@ impl TuiModel {
                     }
                     return;
                 }
+                modal::ModalKind::Settings if self.settings.active_tab() == SettingsTab::Mcp => {
+                    if self.settings.mcp.editing {
+                        self.settings.mcp.edit_buffer.extend(text.chars().filter(|ch| !ch.is_control()));
+                        self.settings.mcp.changed();
+                    }
+                    return;
+                }
                 modal::ModalKind::Settings if self.settings.is_editing() => {
                     let allow_newlines = self.settings.is_textarea();
                     for ch in text.chars() {

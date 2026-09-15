@@ -26,6 +26,9 @@ pub struct GoalAgentAssignment {
     pub inherit_from_main: bool,
 }
 
+mod mcp;
+pub use mcp::*;
+
 mod client;
 mod daemon;
 mod gateway;

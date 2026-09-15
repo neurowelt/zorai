@@ -100,6 +100,7 @@ async fn fetch_url_openapi_spec_emits_openapi_tool_synthesis_proposal_notice() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -242,6 +243,7 @@ async fn fetch_url_openapi_spec_emits_activate_notice_when_equivalent_generated_
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -407,6 +409,7 @@ async fn fetch_url_openapi_spec_emits_reuse_notice_when_equivalent_generated_too
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -567,6 +570,7 @@ async fn fetch_url_openapi_spec_updates_existing_tool_notice_after_status_transi
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     assert!(
@@ -629,6 +633,7 @@ async fn fetch_url_openapi_spec_updates_existing_tool_notice_after_status_transi
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -694,6 +699,7 @@ async fn unknown_cli_like_tool_emits_tool_synthesis_proposal_notice() {
         &event_tx,
         root.path(),
         &http_client,
+        None,
         None,
     )
     .await;
@@ -772,6 +778,7 @@ async fn risky_unknown_cli_like_tool_does_not_emit_tool_synthesis_proposal_notic
         root.path(),
         &http_client,
         None,
+        None,
     )
     .await;
 
@@ -813,6 +820,7 @@ async fn duplicate_unknown_cli_gap_notice_is_suppressed_per_thread() {
             &event_tx,
             root.path(),
             &http_client,
+            None,
             None,
         )
         .await;
@@ -876,6 +884,7 @@ async fn successful_safe_shell_command_emits_tool_synthesis_proposal_notice() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -950,6 +959,7 @@ async fn successful_risky_shell_command_does_not_emit_tool_synthesis_proposal_no
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1005,6 +1015,7 @@ async fn duplicate_successful_shell_gap_notice_is_suppressed_per_thread() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         )
         .await;
@@ -1073,6 +1084,7 @@ async fn repeated_shell_fallback_pattern_upgrades_tool_synthesis_proposal_notice
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
     assert!(
@@ -1131,6 +1143,7 @@ async fn repeated_shell_fallback_pattern_upgrades_tool_synthesis_proposal_notice
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1223,6 +1236,7 @@ async fn unknown_cli_like_tool_does_not_emit_proposal_when_equivalent_generated_
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1289,6 +1303,7 @@ async fn successful_safe_shell_command_does_not_emit_proposal_when_equivalent_ge
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1344,6 +1359,7 @@ async fn unknown_cli_like_tool_emits_activate_notice_when_equivalent_generated_t
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1448,6 +1464,7 @@ async fn successful_safe_shell_command_emits_reuse_notice_when_equivalent_genera
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1563,6 +1580,7 @@ async fn successful_safe_shell_command_emits_promote_notice_when_equivalent_gene
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1694,6 +1712,7 @@ async fn read_memory_includes_thread_structural_graph_neighbors() {
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1795,6 +1814,7 @@ async fn search_memory_uses_preferred_structural_refs_for_graph_lookup_without_m
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1932,6 +1952,7 @@ async fn search_memory_matches_thread_structural_graph_neighbors() {
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -2056,6 +2077,7 @@ async fn search_memory_exposes_thread_structural_graph_neighbors_metadata() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2192,6 +2214,7 @@ async fn read_memory_includes_second_hop_thread_structural_graph_neighbors() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2337,6 +2360,7 @@ async fn search_memory_matches_second_hop_thread_structural_graph_neighbors() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2494,6 +2518,7 @@ async fn read_memory_includes_third_hop_thread_structural_graph_neighbors() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2710,6 +2735,7 @@ async fn search_memory_matches_third_hop_thread_structural_graph_neighbors() {
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -2879,6 +2905,7 @@ async fn read_memory_excludes_structural_seed_nodes_from_deeper_graph_neighbors(
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3038,6 +3065,7 @@ async fn search_memory_excludes_structural_seed_nodes_from_deeper_graph_neighbor
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3195,6 +3223,7 @@ async fn read_memory_deduplicates_deeper_graph_neighbors_reached_from_multiple_s
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -3355,6 +3384,7 @@ async fn search_memory_deduplicates_deeper_graph_neighbors_reached_from_multiple
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3500,6 +3530,7 @@ async fn read_memory_prefers_stronger_edge_when_shared_neighbor_is_reached_multi
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -3663,6 +3694,7 @@ async fn search_memory_prefers_stronger_edge_when_shared_neighbor_is_reached_mul
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3822,6 +3854,7 @@ async fn read_memory_orders_graph_neighbors_by_strongest_retained_edge_weight() 
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -3992,6 +4025,7 @@ async fn search_memory_orders_graph_neighbors_by_strongest_retained_edge_weight(
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;

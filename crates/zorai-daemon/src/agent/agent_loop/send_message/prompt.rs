@@ -98,6 +98,7 @@ impl<'a> SendMessageRunner<'a> {
             self.system_prompt.push_str("\n\n## Preloaded Skills\n");
             self.system_prompt.push_str(&skill_preflight.prompt_context);
         }
+        self.system_prompt.push_str(&self.mcp_prompt_context);
         Ok(())
     }
 }

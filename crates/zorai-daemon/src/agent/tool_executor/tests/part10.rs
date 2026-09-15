@@ -37,7 +37,12 @@ async fn deferred_tool_gate_withholds_niche_tools_but_keeps_core_and_meta() {
 
     // Discovery/activation meta-tools must always remain callable, or the
     // agent could never reach a withheld tool.
-    for meta in [tn::TOOL_SEARCH, tn::LIST_TOOLS, tn::LOAD_TOOLS] {
+    for meta in [
+        tn::TOOL_SEARCH,
+        tn::LIST_TOOLS,
+        tn::LOAD_TOOLS,
+        tn::LIST_MCP_SERVERS,
+    ] {
         assert!(has(&tools, meta), "meta tool {meta} must stay available");
         assert!(!has(&pool, meta), "meta tool {meta} must not be deferred");
     }
@@ -128,6 +133,7 @@ async fn workspace_create_task_tool_persists_task_for_svarog_scope() {
             root.path(),
             &engine.http_client,
             None,
+            None,
         ),
     )
     .await;
@@ -180,6 +186,7 @@ async fn workspace_mutation_tool_is_rejected_outside_svarog_scope() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         ),
     )
@@ -244,6 +251,7 @@ async fn workspace_submit_review_tool_allows_assigned_reviewer_scope() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         ),
     )
@@ -313,6 +321,7 @@ async fn workspace_submit_completion_tool_allows_assigned_assignee_scope_and_que
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         ),
     )
@@ -402,6 +411,7 @@ async fn workspace_submit_completion_tool_rejects_non_assignee_scope() {
             root.path(),
             &engine.http_client,
             None,
+            None,
         ),
     )
     .await;
@@ -465,6 +475,7 @@ async fn workspace_submit_review_tool_rejects_non_reviewer_scope() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         ),
     )
@@ -562,6 +573,7 @@ async fn automatic_workspace_reviewer_can_complete_review_with_tool() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         ),
     )

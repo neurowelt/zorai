@@ -107,6 +107,7 @@ impl SettingsState {
 
     pub fn new() -> Self {
         Self {
+            mcp: Default::default(),
             active_tab: SettingsTab::Auth,
             field_cursor: 0,
             editing_field: None,
@@ -372,6 +373,7 @@ impl SettingsState {
                 _ => "",
             },
             SettingsTab::Plugins => "plugin_field",
+            SettingsTab::Mcp => "mcp_field",
             SettingsTab::Database => match self.field_cursor {
                 0 => "db_sync_now",
                 _ => "",
@@ -433,6 +435,7 @@ impl SettingsState {
             SettingsTab::Features => 30,
             SettingsTab::Advanced => 25,
             SettingsTab::Plugins => 1,
+            SettingsTab::Mcp => 1,
             SettingsTab::Database => 1,
             SettingsTab::About => 0,
         }

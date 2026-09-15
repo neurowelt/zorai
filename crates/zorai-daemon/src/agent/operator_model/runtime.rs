@@ -383,6 +383,7 @@ impl AgentEngine {
             agent_data_dir,
             http_client,
             None,
+            None,
         )
         .await)
     }

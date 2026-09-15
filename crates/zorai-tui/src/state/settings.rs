@@ -18,6 +18,7 @@ pub enum SettingsTab {
     Features,
     Advanced,
     Plugins,
+    Mcp,
     Database,
     About,
 }
@@ -53,6 +54,7 @@ pub enum SettingsAction {
 }
 
 pub struct SettingsState {
+    pub mcp: crate::state::mcp_settings::McpSettingsState,
     active_tab: SettingsTab,
     field_cursor: usize,
     editing_field: Option<String>,

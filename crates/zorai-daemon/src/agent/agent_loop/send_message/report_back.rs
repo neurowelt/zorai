@@ -183,11 +183,7 @@ impl<'a> SendMessageRunner<'a> {
             .collect();
         if extra.len() < 2 {
             extra.extend(
-                crate::agent::tool_executor::get_available_tools(
-                    &self.config,
-                    &self.engine.data_dir,
-                    false,
-                )
+                self.engine.effective_tools(&self.config, false)
                 .into_iter()
                 .filter(|tool| is_report_back_tool(&tool.function.name)),
             );

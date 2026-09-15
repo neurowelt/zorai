@@ -27,6 +27,7 @@ mod gateway_agent_picker;
 mod input_ops;
 mod keyboard;
 mod modal_handlers;
+mod mcp_settings;
 mod mouse;
 mod participant_management;
 mod render_helpers;

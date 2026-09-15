@@ -515,6 +515,8 @@ impl TuiModel {
         self.send_daemon_command(DaemonCommand::GetConciergeConfig);
         if matches!(tab, SettingsTab::Gateway) {
             self.send_daemon_command(DaemonCommand::WhatsAppLinkStatus);
+        } else if matches!(tab, SettingsTab::Mcp) {
+            self.refresh_mcp_settings();
         } else if matches!(tab, SettingsTab::Plugins) {
             self.plugin_settings.list_mode = true;
             self.send_daemon_command(DaemonCommand::PluginList);
@@ -564,6 +566,7 @@ impl TuiModel {
             self.thread_picker_loading_tab = None;
         }
         if self.modal.top() == Some(modal::ModalKind::Settings) {
+            self.settings.mcp.close_draft();
             self.settings_modal_scroll = 0;
         }
         if self.modal.top() == Some(modal::ModalKind::WorkspaceActorPicker) {

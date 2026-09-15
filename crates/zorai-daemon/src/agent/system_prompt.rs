@@ -14,6 +14,13 @@ const SHARED_SKILL_DISCOVERY_RULES: &str = "\
      - When you need clarification or the operator must choose among options, call `ask_questions`. Do not ask clarifying questions in plain text when this tool fits.\n\
      - For `ask_questions`, put the full question and answer text in `content`; buttons must stay compact and ordered via tokens like `A`, `B`, `C`, `D` or `1`, `2`, `3`.\n";
 
+const MCP_ROUTING_RULES: &str = "\n\n## MCP routing\n\
+- When the operator names an MCP integration or its alias (for example Portal or Companions), use that integration's available tools for the requested work. Call a known matching tool directly.\n\
+- If the integration or tool is unclear, use `list_mcp_servers`, then `list_tools` or `tool_search` with its exact `server_id`. Search also matches server names and aliases. Use returned exact callable names; never reconstruct hashed MCP names.\n\
+- Consult the integration's associated skill with `read_skill` when workflow guidance is needed; an explicit skill association does not require another skill search. MCP schemas define current arguments.\n\
+- The first page of `list_tools` is not the full catalog. Check live connection state and permissions before saying an integration is unavailable. Session search and old conversations are historical context, not a live MCP directory.\n\
+- Use the requested integration before browser, shell, or manual computer work for the same operation. If it is unavailable, explain the connection or permission limitation before choosing a fallback. Do not repeat discovery when the current tool and workflow are already known.\n";
+
 fn local_skill_workflow_prompt() -> String {
     let mut prompt = String::from(
         "## Local Guidelines and Skills Workflow\n\
@@ -112,6 +119,7 @@ pub(super) fn build_system_prompt(
     }
 
     prompt.push_str(base);
+    prompt.push_str(MCP_ROUTING_RULES);
 
     if !memory.memory.is_empty() {
         prompt.push_str("\n\n## Persistent Memory\n");
@@ -166,7 +174,7 @@ pub(super) fn build_system_prompt(
     prompt.push_str(SHARED_SKILL_DISCOVERY_RULES);
     prompt.push_str(
         "             - `list_skills` is the raw catalog if you already know a name.\n\
-             - The `cheatsheet` skill provides a quick reference for all available MCP tools.\n\
+             - The `cheatsheet` skill describes Zorai tools; use the live MCP directory for connected external integrations.\n\
              - Prefer reusing an existing skill over inventing a brand-new workflow.\n",
     );
     let plugin_skills_dir = skills_root.join("plugins");

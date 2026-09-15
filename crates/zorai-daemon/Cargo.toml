@@ -61,6 +61,7 @@ jsonschema = "0.45"
 semver = "1"
 prost = { workspace = true }
 url = "2"
+rmcp = { version = "=0.8.5", features = ["client", "transport-streamable-http-client-reqwest"] }
 handlebars = "6.4"
 percent-encoding = "2"
 aes-gcm = "0.10.3"

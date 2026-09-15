@@ -282,6 +282,7 @@ fn visible_thread_continuation_chain_does_not_overflow_small_worker_stack() {
                     root.path(),
                     &engine.http_client,
                     None,
+                    None,
                 )
                 .await;
 
@@ -562,6 +563,7 @@ async fn execute_managed_command_auto_approves_learned_git_category() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -659,6 +661,7 @@ async fn execute_managed_command_auto_approves_saved_rule() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -754,6 +757,7 @@ async fn message_agent_rejects_self_target_for_active_responder() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -861,6 +865,7 @@ async fn message_agent_internal_dm_returns_without_waiting_for_recipient_turn() 
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         ),
     )
@@ -970,6 +975,7 @@ async fn message_agent_can_request_visible_thread_continuation() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1083,6 +1089,7 @@ async fn message_agent_to_active_thread_participant_defaults_to_visible_thread_c
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1177,6 +1184,7 @@ async fn execute_managed_command_auto_denies_learned_destructive_category() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1239,6 +1247,7 @@ async fn auto_backgrounded_bash_command_returns_handle_and_status() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1280,6 +1289,7 @@ async fn auto_backgrounded_bash_command_returns_handle_and_status() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         )
         .await;
@@ -1350,6 +1360,7 @@ async fn tui_bash_command_wait_false_returns_immediate_operation_handle() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1400,6 +1411,7 @@ async fn tui_bash_command_wait_false_returns_immediate_operation_handle() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         )
         .await;
@@ -1509,6 +1521,7 @@ async fn tui_bash_command_wait_true_detaches_long_running_headless_command() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1559,6 +1572,7 @@ async fn tui_bash_command_wait_true_detaches_long_running_headless_command() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         )
         .await;
@@ -1635,6 +1649,7 @@ async fn tui_python_execute_wait_for_response_detaches_long_running_command() {
             root.path(),
             &engine.http_client,
             None,
+            None,
         ),
     )
     .await
@@ -1687,6 +1702,7 @@ async fn tui_python_execute_wait_for_response_detaches_long_running_command() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         )
         .await;
@@ -1758,6 +1774,7 @@ async fn bash_command_wait_true_waits_for_non_quick_headless_command() {
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         ),
     )
@@ -1887,6 +1904,7 @@ async fn tui_bash_command_falls_back_to_goal_run_surface_when_thread_surface_is_
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1918,6 +1936,7 @@ async fn tui_bash_command_falls_back_to_goal_run_surface_when_thread_surface_is_
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1970,6 +1989,7 @@ async fn bash_command_with_sandbox_hint_runs_headless_without_terminal_session()
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -2019,6 +2039,7 @@ async fn tui_bash_command_wait_false_exposes_failure_payload_via_operation_statu
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -2060,6 +2081,7 @@ async fn tui_bash_command_wait_false_exposes_failure_payload_via_operation_statu
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         )
         .await;
@@ -2138,6 +2160,7 @@ async fn tui_bash_command_wait_false_completes_when_descendant_keeps_pipes_open(
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -2182,6 +2205,7 @@ async fn tui_bash_command_wait_false_completes_when_descendant_keeps_pipes_open(
             &event_tx,
             root.path(),
             &engine.http_client,
+            None,
             None,
         )
         .await;
@@ -2260,6 +2284,7 @@ async fn get_operation_status_returns_server_operation_snapshot() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -2324,6 +2349,7 @@ async fn get_operation_status_wait_blocks_until_terminal_state() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2691,6 +2717,7 @@ async fn spawn_subagent_does_not_require_todo_bootstrap_for_chat_threads() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -2771,6 +2798,7 @@ async fn start_goal_run_tool_creates_goal_and_list_goal_runs_returns_it() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -2833,6 +2861,7 @@ async fn start_goal_run_tool_creates_goal_and_list_goal_runs_returns_it() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -2888,6 +2917,7 @@ async fn list_goal_runs_tool_returns_paged_result_with_total_count() {
             root.path(),
             &engine.http_client,
             None,
+            None,
         )
         .await;
         assert!(
@@ -2914,6 +2944,7 @@ async fn list_goal_runs_tool_returns_paged_result_with_total_count() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -2971,6 +3002,7 @@ async fn start_goal_run_tool_inherits_client_surface_from_source_thread() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -3033,6 +3065,7 @@ async fn start_goal_run_tool_defaults_to_agent_authored_auto_approval() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -3124,6 +3157,7 @@ async fn start_goal_run_tool_forwards_launch_assignments_to_goal_snapshot() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -3648,6 +3682,7 @@ async fn message_agent_routes_sibling_dm_to_active_task_thread() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -3740,6 +3775,7 @@ async fn message_agent_rejects_spawned_subagent_dm_to_unused_global_persona() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -4108,6 +4144,7 @@ async fn dispatch_via_bid_protocol_tool_routes_through_collaboration_runtime() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -4237,6 +4274,7 @@ async fn dispatch_via_bid_protocol_tool_bootstraps_collaboration_agents_before_r
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -4329,6 +4367,7 @@ async fn fetch_authenticated_providers_returns_only_authenticated_entries() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -4384,6 +4423,7 @@ async fn fetch_provider_models_uses_authenticated_provider_config() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -4428,6 +4468,7 @@ async fn list_providers_returns_auth_state_rows() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -4484,6 +4525,7 @@ async fn list_models_returns_remote_models_for_authenticated_provider() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -4531,6 +4573,7 @@ async fn list_models_returns_built_in_catalog_when_remote_fetch_is_unsupported()
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -4613,6 +4656,7 @@ async fn list_agents_returns_effective_runtime_targets() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -4761,6 +4805,7 @@ async fn list_participants_returns_thread_participant_rows() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -4902,6 +4947,7 @@ async fn switch_model_updates_targeted_agent_settings_from_svarog_scope() {
                     root.path(),
                     &engine.http_client,
                     None,
+                    None,
                 )
                 .await
             },
@@ -4983,6 +5029,7 @@ async fn switch_model_is_rejected_outside_svarog_scope() {
                 &event_tx,
                 root.path(),
                 &engine.http_client,
+                None,
                 None,
             )
             .await
@@ -5446,6 +5493,7 @@ async fn spawn_subagent_bootstraps_todos_for_goal_run_tasks() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -6545,6 +6593,7 @@ async fn handoff_thread_agent_push_updates_active_responder_and_writes_system_ev
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -6660,6 +6709,7 @@ async fn participant_managed_handoff_rejects_non_participant_target() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -6749,6 +6799,7 @@ async fn participant_managed_handoff_auto_registers_previous_responder() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -6854,6 +6905,7 @@ async fn handoff_thread_agent_push_accepts_svarog_alias_for_main_agent() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -6951,6 +7003,7 @@ async fn handoff_thread_agent_agent_push_requires_approval_outside_yolo() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -7074,6 +7127,7 @@ async fn handoff_thread_agent_return_pops_stack_and_restores_previous_responder(
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -7212,6 +7266,7 @@ async fn approved_thread_handoff_activation_updates_stack_and_thread_identity() 
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -7337,6 +7392,7 @@ async fn get_todos_returns_thread_scoped_items_with_optional_task_id() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -7364,6 +7420,7 @@ async fn get_todos_returns_thread_scoped_items_with_optional_task_id() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -7496,6 +7553,7 @@ async fn show_harness_state_returns_projected_sections_for_current_scope() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -7586,6 +7644,7 @@ async fn show_harness_state_resolves_explicit_task_id_from_persisted_row() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -7635,6 +7694,7 @@ async fn execute_tool_records_timeout_adaptation_in_weles_review_for_fetch_url()
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -7692,6 +7752,7 @@ async fn execute_tool_records_timeout_adaptation_in_weles_review_for_search_file
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -7758,6 +7819,7 @@ async fn update_browser_profile_health_emits_repair_notice_for_repair_needed() {
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -7849,6 +7911,7 @@ async fn list_browser_profiles_tool_returns_reclassified_expired_profiles() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -7917,6 +7980,7 @@ async fn update_browser_profile_health_does_not_emit_repair_notice_for_healthy()
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;

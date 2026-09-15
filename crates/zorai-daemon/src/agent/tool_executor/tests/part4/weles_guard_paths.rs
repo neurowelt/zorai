@@ -49,6 +49,7 @@ async fn execute_tool_guarded_call_uses_weles_runtime_structured_block_verdict()
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -142,6 +143,7 @@ async fn execute_tool_guarded_call_uses_weles_runtime_structured_allow_metadata(
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -225,6 +227,7 @@ async fn execute_tool_weles_blocked_bash_command_returns_pending_approval() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -305,6 +308,7 @@ async fn execute_tool_yolo_bash_command_bypasses_weles_supervision() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -367,6 +371,7 @@ async fn execute_tool_low_risk_read_file_stays_direct_allow() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -415,6 +420,7 @@ async fn execute_tool_unavailable_guarded_review_blocks_closed_normally_and_degr
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -465,6 +471,7 @@ async fn execute_tool_unavailable_guarded_review_blocks_closed_normally_and_degr
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -622,6 +629,7 @@ async fn execute_tool_weles_internal_task_allows_low_risk_shell_python_without_r
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -702,6 +710,7 @@ async fn tui_parent_surface_keeps_weles_internal_shell_headless_with_hardened_ar
         &event_tx,
         root.path(),
         &engine.http_client,
+        None,
         None,
     )
     .await;

@@ -1005,7 +1005,7 @@ impl TuiModel {
                                 .reduce(SettingsAction::SetCursorLineCol(line, col));
                         }
                         Some(widgets::settings::SettingsHitTarget::Tab(tab)) => {
-                            if self.settings.is_editing() {
+                            if self.settings.is_editing() || self.settings.mcp.editing {
                                 return;
                             }
                             self.settings.reduce(SettingsAction::SwitchTab(tab));
@@ -1016,6 +1016,8 @@ impl TuiModel {
                                 self.send_daemon_command(DaemonCommand::GetConciergeConfig);
                             } else if matches!(tab, SettingsTab::Gateway) {
                                 self.send_daemon_command(DaemonCommand::WhatsAppLinkStatus);
+                            } else if matches!(tab, SettingsTab::Mcp) {
+                                self.refresh_mcp_settings();
                             } else if matches!(tab, SettingsTab::Plugins) {
                                 self.plugin_settings.list_mode = true;
                                 self.send_daemon_command(DaemonCommand::PluginList);
@@ -1085,6 +1087,11 @@ impl TuiModel {
                                 widgets::settings::SubAgentTabAction::Toggle => 3,
                             };
                             self.run_subagent_action();
+                        }
+                        Some(widgets::settings::SettingsHitTarget::McpRow(index)) => {
+                            if self.settings.mcp.draft.is_some() { self.settings.mcp.cursor = index; }
+                            else { self.settings.mcp.selected = index; }
+                            self.handle_mcp_settings_key(KeyCode::Enter, KeyModifiers::NONE);
                         }
                         Some(widgets::settings::SettingsHitTarget::Field(field)) => {
                             if self.settings.is_editing() {

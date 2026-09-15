@@ -333,6 +333,78 @@ fn parse_clamped_non_negative_usize_arg(
     }
 }
 
+pub(crate) async fn execute_list_mcp_servers(
+    agent: &AgentEngine,
+    task_id: Option<&str>,
+) -> Result<String> {
+    let scope = agent.mcp_scope_filter(task_id).await;
+    let snapshot = agent.mcp.catalog_snapshot();
+    Ok(
+        serde_json::json!({"servers": snapshot.directory(|name| scope(name).is_none())})
+            .to_string(),
+    )
+}
+
+async fn discovery_catalog(
+    args: &serde_json::Value,
+    agent: &AgentEngine,
+    session_manager: &Arc<SessionManager>,
+    agent_data_dir: &std::path::Path,
+    thread_id: &str,
+    task_id: Option<&str>,
+) -> Result<(
+    Vec<ToolDefinition>,
+    Arc<crate::mcp_client::McpCatalogSnapshot>,
+)> {
+    let server_id = match args.get("server_id") {
+        None => None,
+        Some(value) => Some(
+            value
+                .as_str()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .ok_or_else(|| {
+                    anyhow::anyhow!("'server_id' must be a non-empty string from list_mcp_servers")
+                })?,
+        ),
+    };
+    let scope = agent.mcp_scope_filter(task_id).await;
+    let snapshot = agent.mcp.catalog_snapshot();
+    if server_id.is_some_and(|id| !snapshot.servers.iter().any(|s| s.server_id == id)) {
+        anyhow::bail!(
+            "Unknown MCP server_id. Call list_mcp_servers for the current integration directory."
+        );
+    }
+    let config = agent.get_config().await;
+    let mut tools = if server_id.is_some() {
+        Vec::new()
+    } else {
+        get_available_tools(
+            &config,
+            agent_data_dir,
+            session_manager.read_workspace_topology().is_some(),
+        )
+    };
+    tools.extend(
+        snapshot
+            .tools
+            .iter()
+            .filter(|tool| {
+                scope(&tool.function.name).is_none()
+                    && server_id.is_none_or(|id| {
+                        snapshot
+                            .routes
+                            .get(&tool.function.name)
+                            .is_some_and(|route| route.server_id == id)
+                    })
+            })
+            .cloned(),
+    );
+    let surface = resolve_shell_tool_client_surface(agent, thread_id, task_id).await;
+    filter_tools_for_client_surface(&mut tools, surface);
+    Ok((tools, snapshot))
+}
+
 pub(crate) async fn execute_list_tools(
     args: &serde_json::Value,
     agent: &AgentEngine,
@@ -343,19 +415,18 @@ pub(crate) async fn execute_list_tools(
 ) -> Result<String> {
     let limit = parse_clamped_non_negative_usize_arg(args, "limit", 20, 200)?;
     let offset = parse_clamped_non_negative_usize_arg(args, "offset", 0, usize::MAX)?;
-    let has_workspace_topology = session_manager.read_workspace_topology().is_some();
-    let config = agent.config.read().await;
-    let client_surface = resolve_shell_tool_client_surface(agent, thread_id, task_id).await;
-    let result = list_available_tools_public(
-        &config,
+    let (tools, snapshot) = discovery_catalog(
+        args,
+        agent,
+        session_manager,
         agent_data_dir,
-        has_workspace_topology,
-        client_surface,
-        limit,
-        offset,
-    );
-    serde_json::to_string(&result)
-        .map_err(|error| anyhow::anyhow!("failed to serialize tool list result: {error}"))
+        thread_id,
+        task_id,
+    )
+    .await?;
+    let mut result = serde_json::to_value(list_tool_catalog(tools, limit, offset))?;
+    snapshot.annotate_result(&mut result);
+    Ok(result.to_string())
 }
 
 pub(crate) async fn execute_tool_search(
@@ -374,20 +445,18 @@ pub(crate) async fn execute_tool_search(
         .ok_or_else(|| anyhow::anyhow!("missing 'query' argument"))?;
     let limit = parse_clamped_non_negative_usize_arg(args, "limit", 10, 200)?;
     let offset = parse_clamped_non_negative_usize_arg(args, "offset", 0, usize::MAX)?;
-    let has_workspace_topology = session_manager.read_workspace_topology().is_some();
-    let config = agent.config.read().await;
-    let client_surface = resolve_shell_tool_client_surface(agent, thread_id, task_id).await;
-    let result = search_available_tools_public(
-        &config,
+    let (tools, snapshot) = discovery_catalog(
+        args,
+        agent,
+        session_manager,
         agent_data_dir,
-        has_workspace_topology,
-        client_surface,
-        query,
-        limit,
-        offset,
-    );
-    serde_json::to_string(&result)
-        .map_err(|error| anyhow::anyhow!("failed to serialize tool search result: {error}"))
+        thread_id,
+        task_id,
+    )
+    .await?;
+    let mut result = serde_json::to_value(search_tool_catalog(tools, query, limit, offset))?;
+    snapshot.annotate_result(&mut result);
+    Ok(result.to_string())
 }
 
 pub(crate) async fn execute_read_skill(

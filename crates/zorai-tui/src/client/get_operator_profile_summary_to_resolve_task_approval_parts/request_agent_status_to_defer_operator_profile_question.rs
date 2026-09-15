@@ -43,7 +43,8 @@ impl DaemonClient {
         session_id: Option<String>,
         target_agent_id: Option<String>,
     ) -> Result<()> {
-        self.send(ClientMessage::AgentSendMessage {
+        self.send(ClientMessage::AgentSendMessageWithMcpContext {
+            mcp_workspace: std::env::current_dir().ok().filter(|path| path.is_absolute()).and_then(|path| path.into_os_string().into_string().ok()),
             thread_id,
             content,
             session_id,

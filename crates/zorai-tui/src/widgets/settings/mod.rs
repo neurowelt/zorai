@@ -14,6 +14,7 @@ mod render_chat_tab_to_render_honcho_editor_actions;
 mod render_concierge_tab_to_render_feature_toggle_line;
 #[path = "render_database_tab.rs"]
 mod render_database_tab;
+mod render_mcp;
 #[path = "render_edit_buffer_with_cursor_to_editing_cursor_hit_test_to_content.rs"]
 mod render_edit_buffer_with_cursor_to_editing_cursor_hit_test_to_content;
 #[path = "render_features_tab.rs"]

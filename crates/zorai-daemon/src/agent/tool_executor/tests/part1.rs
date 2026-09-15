@@ -692,6 +692,7 @@ async fn summary_alias_dispatches_to_semantic_query_summary_kind() {
         root.path(),
         &http_client,
         None,
+        None,
     )
     .await;
 
@@ -712,6 +713,7 @@ async fn summary_alias_dispatches_to_semantic_query_summary_kind() {
         &event_tx,
         root.path(),
         &http_client,
+        None,
         None,
     )
     .await;
@@ -783,6 +785,7 @@ async fn get_current_datetime_dispatch_returns_local_and_utc_timestamps() {
         &event_tx,
         root.path(),
         &http_client,
+        None,
         None,
     )
     .await;

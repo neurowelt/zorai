@@ -106,6 +106,8 @@ pub struct SemanticConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConfig {
     #[serde(default)]
+    pub mcp_servers: Vec<zorai_protocol::McpServerConfig>,
+    #[serde(default)]
     pub enabled: bool,
     #[serde(default = "default_provider")]
     pub provider: String,

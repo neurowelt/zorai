@@ -735,11 +735,7 @@ impl AgentEngine {
         );
 
         let tools_inspection = {
-            let mut tools = crate::agent::tool_executor::get_available_tools(
-                &config,
-                &super::agent_data_dir(),
-                true,
-            );
+            let mut tools = self.effective_tools(&config, true);
             crate::agent::tool_executor::filter_tools_for_client_surface(
                 &mut tools,
                 client_surface,

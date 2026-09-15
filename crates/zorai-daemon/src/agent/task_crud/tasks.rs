@@ -236,6 +236,9 @@ impl AgentEngine {
         &self,
         approval_id: &str,
     ) -> Result<Option<zorai_protocol::TaskApprovalRule>> {
+        if approval_id.starts_with("mcp-approval-") && !self.has_live_mcp_approval(approval_id) {
+            return Ok(None);
+        }
         let persisted_command = self
             .history
             .pending_agent_task_approval_command(approval_id)
@@ -782,6 +785,9 @@ impl AgentEngine {
         approval_id: &str,
         decision: zorai_protocol::ApprovalDecision,
     ) -> bool {
+        if approval_id.starts_with("mcp-approval-") {
+            return self.resolve_mcp_approval(approval_id, decision);
+        }
         let goal_plan_approval_task = self
             .pending_approval_task_for_resolution(approval_id, Some("goal_plan_approval"))
             .await;

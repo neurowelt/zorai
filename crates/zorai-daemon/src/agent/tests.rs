@@ -775,3 +775,6 @@ fn refresh_task_queue_state_requeues_stale_awaiting_approval_without_id() {
     assert!(task.blocked_reason.is_none());
     assert_eq!(changed.len(), 1);
 }
+
+#[path = "tests/mcp.rs"]
+mod mcp;

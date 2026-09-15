@@ -115,7 +115,8 @@ async fn first_turn_runner_bootstrap_includes_structured_memory_summary() {
 }
 
 #[tokio::test]
-async fn post_compaction_prompt_rebuild_refreshes_memory_summary_and_injection_state() {
+async fn post_compaction_prompt_rebuild_preserves_mcp_and_refreshes_memory_summary_and_injection_state(
+) {
     let recorded_bodies = Arc::new(StdMutex::new(VecDeque::new()));
     let root = tempdir().unwrap();
     let manager = SessionManager::new_test(root.path()).await;
@@ -133,6 +134,16 @@ async fn post_compaction_prompt_rebuild_refreshes_memory_summary_and_injection_s
     config.keep_recent_on_compact = 1;
 
     let engine = AgentEngine::new_test(manager, config, root.path()).await;
+    engine
+        .mcp
+        .apply_desired_config(vec![zorai_protocol::McpServerConfig {
+            id: "offline-portal".into(),
+            name: "Local Portal".into(),
+            url: "http://127.0.0.1:1/mcp".into(),
+            adapter: zorai_protocol::McpAdapterPolicy::Portal,
+            ..Default::default()
+        }])
+        .unwrap();
     let thread_id = "thread-memory-bootstrap-rebuild";
 
     let memory_paths = crate::agent::task_prompt::memory_paths_for_scope(
@@ -253,6 +264,34 @@ async fn post_compaction_prompt_rebuild_refreshes_memory_summary_and_injection_s
             .any(|body| body.contains("Durable correction from compaction")),
         "expected rebuilt prompt summary to reflect refreshed durable memory"
     );
+    for body in recorded
+        .iter()
+        .filter(|body| !body.contains("## Pre-Compaction Memory Flush"))
+    {
+        let request: serde_json::Value = serde_json::from_str(body).unwrap();
+        let system = request["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["role"] == "system")
+            .unwrap()["content"]
+            .as_str()
+            .unwrap();
+        assert!(system.contains("## MCP routing"));
+        let directory_line = system
+            .lines()
+            .find(|line| line.starts_with("[{\"server_id\""))
+            .expect("MCP directory survives rebuild");
+        let directory: serde_json::Value = serde_json::from_str(directory_line).unwrap();
+        assert_eq!(directory[0]["server_id"], "offline-portal");
+        assert_eq!(directory[0]["state"], "disabled");
+        assert_eq!(directory[0]["skill"], "companions");
+        assert!(request["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t["function"]["name"] == "list_mcp_servers"));
+    }
 }
 
 #[tokio::test]

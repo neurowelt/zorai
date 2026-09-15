@@ -206,6 +206,7 @@ async fn update_memory_from_custom_agent_scope_writes_only_custom_memory() {
             &agent_data_dir,
             &engine.http_client,
             None,
+            None,
         )
         .await
     })
@@ -369,6 +370,7 @@ async fn list_threads_tool_returns_filtered_visible_summaries() {
         root.path(),
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -453,6 +455,7 @@ async fn read_memory_skips_fresh_injected_base_markdown_by_default() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -595,6 +598,7 @@ async fn read_memory_includes_structural_graph_lookup_results() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1052,6 +1056,7 @@ async fn read_memory_rejects_non_object_args_in_direct_tool_path() {
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1108,6 +1113,7 @@ async fn read_memory_skip_uses_memory_layer_freshness_not_combined_bootstrap_has
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1181,6 +1187,7 @@ async fn read_memory_can_force_return_of_already_injected_base_markdown() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1258,6 +1265,7 @@ async fn read_memory_skips_blank_base_markdown_when_injected_copy_is_fresh() {
         &agent_data_dir,
         &engine.http_client,
         None,
+        None,
     )
     .await;
 
@@ -1328,6 +1336,7 @@ async fn read_soul_returns_base_markdown_when_injected_copy_is_stale() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1412,6 +1421,7 @@ async fn read_memory_marks_truncated_when_language_hints_overflow_limit() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1530,6 +1540,7 @@ async fn read_memory_marks_truncated_when_structural_entries_overflow_across_sou
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;
@@ -1666,6 +1677,7 @@ async fn search_user_honors_layer_toggles() {
         &event_tx,
         &agent_data_dir,
         &engine.http_client,
+        None,
         None,
     )
     .await;

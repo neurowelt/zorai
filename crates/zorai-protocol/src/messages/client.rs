@@ -316,4 +316,12 @@ pub enum ClientMessage {
     },
     AgentGetThreadExecutionProfile { thread_id: String },
     AgentSetThreadExecutionProfile { thread_id: String, profile_json: String },
+    // Append-only MCP extension; legacy send fields and discriminants stay unchanged.
+    AgentSendMessageWithMcpContext { thread_id: Option<String>, content: String, session_id: Option<String>, context_messages_json: Option<String>, content_blocks_json: Option<String>, client_surface: Option<ClientSurface>, target_agent_id: Option<String>, mcp_workspace: Option<String> },
+    McpListServers,
+    McpSaveServer { request_id: String, revision: u64, config: super::McpServerConfig, credential: super::McpCredentialUpdate },
+    McpTestServer { request_id: String, revision: u64, config: super::McpServerConfig, credential: super::McpCredentialUpdate },
+    McpSetServerEnabled { id: String, enabled: bool },
+    McpReconnectServer { id: String },
+    McpRemoveServer { request_id: String, revision: u64, id: String },
 }

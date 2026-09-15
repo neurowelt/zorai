@@ -39,6 +39,7 @@ mod tests {
     mod daemon_collaboration_sessions_reply_emits_client_event_to_workspace;
     #[path = "tui_thread_handoff_bridge.rs"]
     mod tui_thread_handoff_bridge;
+    mod mcp;
     #[path = "whatsapp_link_methods_send_expected_protocol_messages_to_resolve_task.rs"]
     mod whatsapp_link_methods_send_expected_protocol_messages_to_resolve_task;
 

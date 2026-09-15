@@ -56,6 +56,7 @@ pub struct OpenAICodexAuthStatusVm {
 
 #[derive(Debug, Clone)]
 pub enum ClientEvent {
+    Mcp(zorai_protocol::DaemonMessage),
     Connected,
     Disconnected,
     Reconnecting {

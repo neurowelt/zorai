@@ -54,3 +54,25 @@ fn mcp_config_endpoint_resets_consent_and_credentials() {
         assert!(normalize_config(config, None).is_err());
     }
 }
+
+#[test]
+fn mcp_discovery_metadata_defaults_and_validation() {
+    let legacy = serde_json::json!({"id":"portal","name":"Local", "url":"http://localhost:1/mcp","adapter":"portal"});
+    let config: McpServerConfig = serde_json::from_value(legacy).unwrap();
+    assert_eq!(config.workflow_skill(), Some("companions"));
+    assert_eq!(config.discovery_aliases(), ["portal", "companions"]);
+    let mut edited = config.clone();
+    edited.aliases = vec![" Advice ".into(), "advice".into()];
+    edited.skill = Some(" custom-skill ".into());
+    let normalized = normalize_config(edited, Some(&config)).unwrap();
+    assert_eq!(normalized.aliases, ["Advice"]);
+    assert_eq!(normalized.workflow_skill(), Some("custom-skill"));
+    for skill in ["../escape", "two words", "line\nbreak", "UPPER"] {
+        let mut invalid = config.clone();
+        invalid.skill = Some(skill.into());
+        assert!(normalize_config(invalid, None).is_err());
+    }
+    let mut invalid = config;
+    invalid.aliases = vec!["bad\nname".into()];
+    assert!(normalize_config(invalid, None).is_err());
+}

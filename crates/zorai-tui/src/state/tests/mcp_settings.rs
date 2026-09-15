@@ -254,3 +254,27 @@ fn mcp_tool_selection_is_collapsed_by_default_and_uses_an_accordion() {
     assert!(state.toggle_selected_tool_description());
     assert_eq!(state.expanded_tool, None);
 }
+
+#[test]
+fn mcp_discovery_metadata_edits_round_trip_without_changing_credentials() {
+    let mut state = McpSettingsState::default();
+    state.open(Some(saved_server()));
+    state.cursor = 9;
+    state.begin_edit();
+    state.edit_buffer = "companions, thinkers".into();
+    state.commit_edit();
+    state.cursor = 10;
+    state.begin_edit();
+    state.edit_buffer = "companions".into();
+    state.commit_edit();
+    let ClientMessage::McpSaveServer {
+        config, credential, ..
+    } = state.request(true).unwrap()
+    else {
+        panic!("save request")
+    };
+    assert_eq!(config.aliases, ["companions", "thinkers"]);
+    assert_eq!(config.skill.as_deref(), Some("companions"));
+    assert_eq!(credential, McpCredentialUpdate::Keep);
+    assert!(config.share_workspace_context);
+}

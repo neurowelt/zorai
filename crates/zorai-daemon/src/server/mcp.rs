@@ -186,6 +186,7 @@ mod tests {
             share_workspace_context: false,
             auth: zorai_protocol::McpAuthConfig::None,
             adapter: zorai_protocol::McpAdapterPolicy::Generic,
+            ..Default::default()
         };
         agent
             .save_mcp_server(config.clone(), zorai_protocol::McpCredentialUpdate::Keep)

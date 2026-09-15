@@ -37,7 +37,12 @@ async fn deferred_tool_gate_withholds_niche_tools_but_keeps_core_and_meta() {
 
     // Discovery/activation meta-tools must always remain callable, or the
     // agent could never reach a withheld tool.
-    for meta in [tn::TOOL_SEARCH, tn::LIST_TOOLS, tn::LOAD_TOOLS] {
+    for meta in [
+        tn::TOOL_SEARCH,
+        tn::LIST_TOOLS,
+        tn::LOAD_TOOLS,
+        tn::LIST_MCP_SERVERS,
+    ] {
         assert!(has(&tools, meta), "meta tool {meta} must stay available");
         assert!(!has(&pool, meta), "meta tool {meta} must not be deferred");
     }

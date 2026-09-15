@@ -865,6 +865,18 @@ mod tests {
             builtin_root.join("zorai-mcp").join("README.md").exists(),
             "expected built-in skills seed to copy nested markdown docs"
         );
+        for path in [
+            "companions/SKILL.md",
+            "companions/references/protocol.md",
+            "companions/references/client-tools.md",
+            "companions/references/companions-perspective.md",
+            "companions/references/companions-brainstorm.md",
+        ] {
+            assert!(
+                builtin_root.join(path).is_file(),
+                "missing seeded Companion document: {path}"
+            );
+        }
     }
 
     #[test]

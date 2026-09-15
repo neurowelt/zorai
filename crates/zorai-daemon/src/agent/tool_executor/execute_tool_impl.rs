@@ -1965,6 +1965,7 @@ async fn dispatch_tool_execution(
         tool_names::SEARCH_SOUL => {
             execute_search_soul(args, agent, Some(thread_id), task_id, agent_data_dir).await
         }
+        tool_names::LIST_MCP_SERVERS => execute_list_mcp_servers(agent, task_id).await,
         tool_names::LIST_TOOLS => {
             execute_list_tools(
                 args,

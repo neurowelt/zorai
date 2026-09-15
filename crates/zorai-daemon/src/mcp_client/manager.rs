@@ -195,6 +195,8 @@ impl McpManager {
             if let Some(entry) = state.servers.get_mut(&config.id) {
                 let mut comparable = entry.config.clone();
                 comparable.name = config.name.clone();
+                comparable.aliases = config.aliases.clone();
+                comparable.skill = config.skill.clone();
                 comparable.share_workspace_context = config.share_workspace_context;
                 if comparable == config {
                     entry.config = config.clone();
@@ -294,8 +296,10 @@ impl McpManager {
             let entry = state.servers.get_mut(&id).filter(|e| e.config.enabled && e.generation == generation).ok_or("MCP_ROUTE_STALE: MCP server was disabled or reconfigured. No request was sent.")?;
             if request["method"] == "tools/list" && entry.connection.is_none() {
                 entry.status.state = "discovering".into();
+                publish(&mut state);
             }
             if request["method"] == "tools/call" {
+                let entry = state.servers.get(&id).ok_or("Unknown MCP server")?;
                 let meta = &request["params"]["_meta"];
                 if (meta.get(WORKSPACE).is_some() || meta.get(CONVERSATION).is_some())
                     && !entry.config.share_workspace_context
@@ -621,6 +625,16 @@ fn publish(state: &mut State) {
     let mut servers: Vec<_> = state.servers.values().collect();
     servers.sort_by(|a, b| a.config.id.cmp(&b.config.id));
     for entry in servers {
+        snapshot
+            .servers
+            .push(zorai_protocol::McpServerDirectoryEntry {
+                server_id: entry.config.id.clone(),
+                name: entry.config.name.clone(),
+                aliases: entry.config.discovery_aliases(),
+                state: entry.status.state.clone(),
+                available_tool_count: 0,
+                skill: entry.config.workflow_skill().map(str::to_string),
+            });
         if !entry.config.enabled {
             continue;
         }
@@ -637,7 +651,7 @@ fn publish(state: &mut State) {
                     && tool.name == "get_answer",
             };
             if snapshot.routes.insert(name, route).is_none() {
-                let mut definition = definition(&entry.config.id, tool);
+                let mut definition = definition(&entry.config, tool);
                 if connection
                     .tools
                     .first()
@@ -648,6 +662,11 @@ fn publish(state: &mut State) {
                     }
                 }
                 snapshot.tools.push(definition);
+                snapshot
+                    .servers
+                    .last_mut()
+                    .expect("server entry")
+                    .available_tool_count += 1;
             }
         }
     }

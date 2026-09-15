@@ -4,11 +4,11 @@ use crate::mcp_client::{McpCallError, McpRequestContext};
 use std::path::Path;
 
 impl AgentEngine {
-    /// A connected MCP catalog must use the normal agent loop so its tools are
-    /// actually advertised and executable. The lightweight concierge reply path
+    /// A configured MCP integration must use the normal agent loop so its tools are
+    /// advertised and executable, including status discovery while disconnected. The lightweight concierge reply path
     /// intentionally has no tool loop.
-    pub(crate) fn has_mcp_tools(&self) -> bool {
-        !self.mcp.catalog_snapshot().tools.is_empty()
+    pub(crate) fn has_mcp_servers(&self) -> bool {
+        !self.mcp.catalog_snapshot().servers.is_empty()
     }
 
     pub(crate) async fn save_mcp_server(

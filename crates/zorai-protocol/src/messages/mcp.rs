@@ -36,6 +36,45 @@ pub struct McpServerConfig {
     pub auth: McpAuthConfig,
     #[serde(default)]
     pub adapter: McpAdapterPolicy,
+    #[serde(default)]
+    pub aliases: Vec<String>,
+    #[serde(default)]
+    pub skill: Option<String>,
+}
+
+impl McpServerConfig {
+    pub fn discovery_aliases(&self) -> Vec<String> {
+        let mut aliases = self.aliases.clone();
+        if self.adapter == McpAdapterPolicy::Portal {
+            for alias in ["portal", "companions"] {
+                if !aliases
+                    .iter()
+                    .any(|value| value.eq_ignore_ascii_case(alias))
+                {
+                    aliases.push(alias.into());
+                }
+            }
+        }
+        aliases
+    }
+
+    pub fn workflow_skill(&self) -> Option<&str> {
+        self.skill
+            .as_deref()
+            .or_else(|| (self.adapter == McpAdapterPolicy::Portal).then_some("companions"))
+    }
+}
+
+/// Agent-facing connection metadata. Deliberately excludes endpoints, credentials,
+/// remote instructions, and connection diagnostics.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct McpServerDirectoryEntry {
+    pub server_id: String,
+    pub name: String,
+    pub aliases: Vec<String>,
+    pub state: String,
+    pub available_tool_count: usize,
+    pub skill: Option<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Default)]

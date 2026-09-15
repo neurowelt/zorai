@@ -130,13 +130,49 @@ pub(crate) fn render_mcp(
             "cycle",
             theme,
         );
+        push_field(
+            &mut lines,
+            state,
+            9,
+            "Aliases:",
+            value(
+                9,
+                if draft.config.aliases.is_empty() {
+                    if draft.config.adapter == McpAdapterPolicy::Portal {
+                        "portal, companions · automatic".into()
+                    } else {
+                        "Comma-separated names".into()
+                    }
+                } else {
+                    draft.config.aliases.join(", ")
+                },
+            ),
+            "edit",
+            theme,
+        );
+        push_field(
+            &mut lines,
+            state,
+            10,
+            "Workflow skill:",
+            value(
+                10,
+                draft
+                    .config
+                    .workflow_skill()
+                    .unwrap_or("Optional")
+                    .to_string(),
+            ),
+            "edit",
+            theme,
+        );
         push_section(&mut lines, "Actions", theme);
-        push_action(&mut lines, state, 9, "Test connection", theme);
-        push_action(&mut lines, state, 10, "Save", theme);
-        push_action(&mut lines, state, 11, "Reconnect", theme);
-        push_action(&mut lines, state, 12, "Back", theme);
+        push_action(&mut lines, state, 11, "Test connection", theme);
+        push_action(&mut lines, state, 12, "Save", theme);
+        push_action(&mut lines, state, 13, "Reconnect", theme);
+        push_action(&mut lines, state, 14, "Back", theme);
         if state.is_saved() {
-            push_action(&mut lines, state, 13, "Remove", theme);
+            push_action(&mut lines, state, 15, "Remove", theme);
         }
 
         lines.push(Line::raw(""));
@@ -263,7 +299,7 @@ fn field_rows(state: &McpSettingsState) -> Vec<(usize, usize)> {
         .visible_fields()
         .into_iter()
         .map(|index| {
-            if matches!(index, 6 | 8 | 9) {
+            if matches!(index, 6 | 8 | 11) {
                 row += 2;
             }
             if index == 8 {
@@ -376,7 +412,7 @@ fn push_action(
                 theme.accent_primary.add_modifier(
                     ratatui::style::Modifier::REVERSED | ratatui::style::Modifier::BOLD,
                 )
-            } else if index == 13 {
+            } else if index == 15 {
                 theme
                     .accent_danger
                     .add_modifier(ratatui::style::Modifier::BOLD)

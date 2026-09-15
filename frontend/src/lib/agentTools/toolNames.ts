@@ -109,6 +109,7 @@ export const TOOL_NAMES = {
   listTerminals: "list_terminals",
   listThreads: "list_threads",
   listTools: "list_tools",
+  listMcpServers: "list_mcp_servers",
   listTodos: "list_todos",
   listTriggerFireHistory: "list_trigger_fire_history",
   listTriggers: "list_triggers",

@@ -11,6 +11,7 @@ fn disabled_mcp_server(id: &str, auth: McpAuthConfig) -> McpServerConfig {
         share_workspace_context: false,
         auth,
         adapter: McpAdapterPolicy::Generic,
+        ..Default::default()
     }
 }
 

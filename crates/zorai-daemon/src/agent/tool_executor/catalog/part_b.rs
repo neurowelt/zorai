@@ -292,12 +292,19 @@ pub(crate) fn add_available_tools_part_b(
     ));
 
     tools.push(tool_def(
+        tool_names::LIST_MCP_SERVERS,
+        "List configured MCP integrations, including disconnected servers, by server_id, name, aliases, connection state, permitted tool count, and optional workflow skill. Use for live integration discovery when a user names an MCP such as Portal or Companions; session history does not describe current connections.",
+        serde_json::json!({"type": "object", "properties": {}}),
+    ));
+
+    tools.push(tool_def(
         tool_names::LIST_TOOLS,
-        "List the tools currently available to the agent in this runtime context, including descriptions and argument schemas.",
+        "List built-in and connected MCP tools, including descriptions and argument schemas. Results are paginated: the first page is not the full catalog. Set server_id from list_mcp_servers to list only that integration's permitted tools.",
         serde_json::json!({
             "type": "object",
             "properties": {
                 "limit": { "type": "integer", "description": "Max tools to return (default: 20)" },
+                "server_id": { "type": "string", "description": "Exact MCP server_id from list_mcp_servers; excludes built-in tools when set" },
                 "offset": { "type": "integer", "description": "Zero-based pagination offset (default: 0)" }
             }
         }),
@@ -305,11 +312,12 @@ pub(crate) fn add_available_tools_part_b(
 
     tools.push(tool_def(
         tool_names::TOOL_SEARCH,
-        "Search the currently available tools by name, description, and parameter names to find the best tool for a task.",
+        "Search built-in and connected MCP tools by tool name, server name or aliases, description, and parameter names. Set server_id from list_mcp_servers to search only that integration. Use the returned exact name to call an MCP tool directly.",
         serde_json::json!({
             "type": "object",
             "properties": {
                 "query": { "type": "string", "description": "Capability or action you are looking for" },
+                "server_id": { "type": "string", "description": "Exact MCP server_id from list_mcp_servers; excludes built-in tools when set" },
                 "limit": { "type": "integer", "description": "Max matches (default: 10)" },
                 "offset": { "type": "integer", "description": "Zero-based pagination offset (default: 0)" }
             },

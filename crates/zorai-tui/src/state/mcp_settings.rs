@@ -28,7 +28,7 @@ pub struct McpDraft {
 }
 
 impl McpSettingsState {
-    pub const FIELDS: usize = 14;
+    pub const FIELDS: usize = 16;
 
     pub fn is_saved(&self) -> bool {
         self.draft
@@ -44,7 +44,7 @@ impl McpSettingsState {
                     .as_ref()
                     .is_some_and(|d| matches!(d.config.auth, McpAuthConfig::ApiKey { .. })),
                 5 => false,
-                13 => self.is_saved(),
+                15 => self.is_saved(),
                 _ => true,
             })
             .collect()
@@ -111,6 +111,8 @@ impl McpSettingsState {
         self.edit_buffer = match self.cursor {
             0 => draft.config.name.clone(),
             1 => draft.config.url.clone(),
+            9 => draft.config.aliases.join(", "),
+            10 => draft.config.skill.clone().unwrap_or_default(),
             3 => match &draft.config.auth {
                 McpAuthConfig::ApiKey { header, .. } => header.clone(),
                 _ => return,
@@ -129,6 +131,19 @@ impl McpSettingsState {
         };
         match self.cursor {
             0 => draft.config.name = self.edit_buffer.trim().to_string(),
+            9 => {
+                draft.config.aliases = self
+                    .edit_buffer
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_string)
+                    .collect()
+            }
+            10 => {
+                draft.config.skill =
+                    Some(self.edit_buffer.trim().to_string()).filter(|s| !s.is_empty())
+            }
             1 => {
                 let url = self.edit_buffer.trim().to_string();
                 if draft.config.url != url {

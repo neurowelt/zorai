@@ -11,6 +11,8 @@ fn server_config() -> McpServerConfig {
             credential_ref: Some("mcp:stable-server".into()),
         },
         adapter: McpAdapterPolicy::Portal,
+        aliases: vec!["companions".into(), "thinkers".into()],
+        skill: Some("companions".into()),
     }
 }
 

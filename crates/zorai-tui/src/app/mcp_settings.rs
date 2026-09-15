@@ -141,14 +141,14 @@ impl TuiModel {
                 KeyCode::Enter | KeyCode::Char(' ') if state.toggle_selected_tool_description() => {
                 }
                 KeyCode::Enter | KeyCode::Char(' ') => match state.cursor {
-                    0 | 1 | 3 | 4 => state.begin_edit(),
+                    0 | 1 | 3 | 4 | 9 | 10 => state.begin_edit(),
                     2 | 5 | 6 | 7 | 8 => state.toggle(),
-                    9 | 10 => {
-                        if let Some(request) = state.request(state.cursor == 10) {
+                    11 | 12 => {
+                        if let Some(request) = state.request(state.cursor == 12) {
                             self.send_daemon_command(DaemonCommand::Mcp(request));
                         }
                     }
-                    11 => {
+                    13 => {
                         if let Some(draft) = &state.draft {
                             if state
                                 .servers
@@ -164,8 +164,8 @@ impl TuiModel {
                             }
                         }
                     }
-                    12 => self.save_and_leave_mcp(),
-                    13 if state.is_saved() => {
+                    14 => self.save_and_leave_mcp(),
+                    15 if state.is_saved() => {
                         let id = state.draft.as_ref().unwrap().config.id.clone();
                         let request_id = uuid::Uuid::new_v4().to_string();
                         state.changed();
@@ -217,7 +217,7 @@ mod tests {
         model.handle_mcp_settings_key(KeyCode::Enter, KeyModifiers::NONE);
         model.handle_paste("http://127.0.0.1:12345/mcp".into());
         model.handle_mcp_settings_key(KeyCode::Enter, KeyModifiers::NONE);
-        model.settings.mcp.cursor = 9;
+        model.settings.mcp.cursor = 11;
         model.handle_mcp_settings_key(KeyCode::Enter, KeyModifiers::NONE);
         let DaemonCommand::Mcp(ClientMessage::McpTestServer {
             request_id,
@@ -246,7 +246,7 @@ mod tests {
         assert!(model.settings.mcp.servers.is_empty());
         model.settings.mcp.cursor = 7;
         model.handle_mcp_settings_key(KeyCode::Enter, KeyModifiers::NONE);
-        model.settings.mcp.cursor = 10;
+        model.settings.mcp.cursor = 12;
         model.handle_mcp_settings_key(KeyCode::Enter, KeyModifiers::NONE);
         let DaemonCommand::Mcp(ClientMessage::McpSaveServer {
             request_id,
@@ -326,7 +326,7 @@ mod tests {
         let (daemon_tx, mut daemon_rx) = tokio::sync::mpsc::unbounded_channel();
         let mut model = TuiModel::new(event_rx, daemon_tx);
         model.settings.mcp.open(None);
-        model.settings.mcp.cursor = 11;
+        model.settings.mcp.cursor = 13;
         model.handle_mcp_settings_key(KeyCode::Enter, KeyModifiers::NONE);
         assert!(daemon_rx.try_recv().is_err());
         assert!(
@@ -426,7 +426,7 @@ mod editor_regression_tests {
         model.settings.mcp.open(None);
         model.settings.mcp.draft.as_mut().unwrap().config.name = "My server".into();
         for success in [false, true] {
-            model.settings.mcp.cursor = 12;
+            model.settings.mcp.cursor = 14;
             model.handle_mcp_settings_key(KeyCode::Enter, KeyModifiers::NONE);
             let DaemonCommand::Mcp(ClientMessage::McpSaveServer {
                 request_id,
@@ -459,7 +459,7 @@ mod editor_regression_tests {
         model.settings.mcp.servers.push(server.clone());
         model.settings.mcp.open(Some(server));
         for success in [false, true] {
-            model.settings.mcp.cursor = 13;
+            model.settings.mcp.cursor = 15;
             model.handle_mcp_settings_key(KeyCode::Enter, KeyModifiers::NONE);
             let DaemonCommand::Mcp(ClientMessage::McpRemoveServer {
                 request_id,

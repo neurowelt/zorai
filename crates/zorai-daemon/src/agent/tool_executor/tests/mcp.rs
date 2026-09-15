@@ -270,3 +270,162 @@ async fn mcp_scope_snapshot_applies_task_filter_and_dispatch_rechecks_revocation
         .unwrap()
         .contains("blacklisted"));
 }
+
+#[tokio::test]
+async fn mcp_discovery_finds_named_servers_filters_before_pagination_and_preserves_routes() {
+    let root = tempdir().unwrap();
+    let engine = mcp_engine(root.path()).await;
+    let mock = Mock::start(|r| async move { basic(&r, true) }).await;
+    let mut portal = config(&mock);
+    portal.name = "Local Portal".into();
+    portal.adapter = zorai_protocol::McpAdapterPolicy::Portal;
+    portal.aliases = vec!["thinkers".into()];
+    let mut disabled = portal.clone();
+    disabled.id = "offline".into();
+    disabled.enabled = false;
+    engine
+        .mcp
+        .apply_desired_config(vec![portal.clone(), disabled])
+        .unwrap();
+    connected(&engine.mcp).await;
+    let original = name(&engine, "consult");
+
+    let result = call(&engine, tool_names::LIST_MCP_SERVERS, None).await;
+    assert!(!result.is_error, "{}", result.content);
+    let directory: serde_json::Value = serde_json::from_str(&result.content).unwrap();
+    assert_eq!(directory["servers"][0]["available_tool_count"], 3);
+    assert_eq!(directory["servers"][0]["skill"], "companions");
+    assert_eq!(directory["servers"][1]["state"], "disabled");
+    assert_eq!(directory["servers"][1]["available_tool_count"], 0);
+    assert!(!result.content.contains(&mock.url));
+    assert!(!result.content.contains("credential"));
+    for query in ["Portal", "companions", "thinkers"] {
+        let result = execute_tool_search(
+            &json!({"query":query,"server_id":"mock"}),
+            &engine,
+            &engine.session_manager,
+            &engine.data_dir,
+            "mcp-thread",
+            None,
+        )
+        .await
+        .unwrap();
+        let result: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(result["total"], 3, "{query}: {result}");
+        assert!(result["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|item| item["server_id"] == "mock" && item["server_name"] == "Local Portal"));
+    }
+    let page = execute_list_tools(
+        &json!({"server_id":"mock","limit":1,"offset":1}),
+        &engine,
+        &engine.session_manager,
+        &engine.data_dir,
+        "mcp-thread",
+        None,
+    )
+    .await
+    .unwrap();
+    let page: serde_json::Value = serde_json::from_str(&page).unwrap();
+    assert_eq!(page["total"], 3);
+    assert_eq!(page["items"].as_array().unwrap().len(), 1);
+    let item = &page["items"][0];
+    assert_eq!(item["server_id"], "mock");
+    assert!(engine
+        .mcp
+        .catalog_snapshot()
+        .routes
+        .contains_key(item["name"].as_str().unwrap()));
+    assert!(item["original_name"].is_string());
+
+    for args in [
+        json!({"server_id":"missing"}),
+        json!({"server_id":17}),
+        json!({"server_id":""}),
+    ] {
+        assert!(execute_list_tools(
+            &args,
+            &engine,
+            &engine.session_manager,
+            &engine.data_dir,
+            "mcp-thread",
+            None
+        )
+        .await
+        .is_err());
+    }
+    let offline = execute_list_tools(
+        &json!({"server_id":"offline"}),
+        &engine,
+        &engine.session_manager,
+        &engine.data_dir,
+        "mcp-thread",
+        None,
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&offline).unwrap()["total"],
+        0
+    );
+    let denied = execute_tool_search(
+        &json!({"query":"companions","server_id":"mock"}),
+        &engine,
+        &engine.session_manager,
+        &engine.data_dir,
+        "mcp-thread",
+        Some("deleted-task"),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&denied).unwrap()["total"],
+        0
+    );
+    let denied = execute_list_mcp_servers(&engine, Some("deleted-task"))
+        .await
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&denied).unwrap()["servers"][0]
+            ["available_tool_count"],
+        0
+    );
+
+    let snapshot = engine.mcp.catalog_snapshot();
+    let prompt = snapshot.prompt_context(&snapshot.tools[..1]);
+    let entries: serde_json::Value =
+        serde_json::from_str(prompt.lines().find(|line| line.starts_with('[')).unwrap()).unwrap();
+    assert_eq!(entries[0]["available_tool_count"], 1);
+    assert_eq!(entries[0]["skill"], "companions");
+    portal.name = "Renamed integration".into();
+    portal.aliases = vec!["advisers".into()];
+    portal.skill = Some("custom-workflow".into());
+    engine.mcp.apply_desired_config(vec![portal]).unwrap();
+    assert_eq!(name(&engine, "consult"), original);
+    assert_eq!(
+        engine.mcp.catalog_snapshot().routes[&original].generation,
+        snapshot.routes[&original].generation
+    );
+    let renamed = execute_tool_search(
+        &json!({"query":"advisers"}),
+        &engine,
+        &engine.session_manager,
+        &engine.data_dir,
+        "mcp-thread",
+        None,
+    )
+    .await
+    .unwrap();
+    assert!(renamed.contains("Renamed integration"));
+    assert_eq!(
+        engine.mcp.catalog_snapshot().servers[0].skill.as_deref(),
+        Some("custom-workflow")
+    );
+    assert!(
+        mock.calls().is_empty(),
+        "discovery must not submit remote work"
+    );
+    engine.mcp.shutdown().await;
+}

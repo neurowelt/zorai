@@ -327,7 +327,7 @@ async fn mcp_no_servers_preserves_existing_tool_catalog() {
         serde_json::to_value(baseline).unwrap()
     );
     assert!(engine.mcp.catalog_snapshot().tools.is_empty());
-    assert!(!engine.has_mcp_tools());
+    assert!(!engine.has_mcp_servers());
 }
 
 #[tokio::test]
@@ -343,7 +343,7 @@ async fn mcp_connected_catalog_selects_the_tool_capable_agent_loop() {
         .unwrap();
     connected(&engine.mcp).await;
 
-    assert!(engine.has_mcp_tools());
+    assert!(engine.has_mcp_servers());
     assert_eq!(engine.mcp.catalog_snapshot().tools.len(), 3);
     engine.mcp.shutdown().await;
 }
@@ -368,4 +368,27 @@ async fn mcp_deleted_thread_releases_cached_binding() {
         "deleted-mcp",
         other.path(),
     );
+}
+
+#[tokio::test]
+async fn mcp_disabled_server_keeps_status_discovery_in_the_tool_capable_loop() {
+    let root = tempdir().unwrap();
+    let engine = engine_at(root.path()).await;
+    engine
+        .mcp
+        .apply_desired_config(vec![zorai_protocol::McpServerConfig {
+            id: "offline".into(),
+            name: "Portal".into(),
+            url: "http://127.0.0.1:1/mcp".into(),
+            adapter: zorai_protocol::McpAdapterPolicy::Portal,
+            ..Default::default()
+        }])
+        .unwrap();
+    assert!(engine.has_mcp_servers());
+    assert!(engine.mcp.catalog_snapshot().tools.is_empty());
+    assert!(engine
+        .effective_tools(&AgentConfig::default(), false)
+        .iter()
+        .any(|t| t.function.name == zorai_protocol::tool_names::LIST_MCP_SERVERS));
+    engine.mcp.shutdown().await;
 }

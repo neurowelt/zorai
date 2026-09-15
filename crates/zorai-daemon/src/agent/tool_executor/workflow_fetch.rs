@@ -91,7 +91,7 @@ pub(crate) fn emit_workflow_notice_for_tool(
             format!("Agent consulted persistent memory via {tool_name}."),
             Some(args.to_string()),
         ),
-        tool_names::LIST_TOOLS | tool_names::TOOL_SEARCH => (
+        tool_names::LIST_TOOLS | tool_names::TOOL_SEARCH | tool_names::LIST_MCP_SERVERS => (
             "tool-catalog",
             format!("Agent inspected available tools via {tool_name}."),
             Some(args.to_string()),

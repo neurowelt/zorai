@@ -1452,6 +1452,8 @@ impl<'a> SendMessageRunner<'a> {
                 !PARTICIPANT_AGENT_FANOUT_TOOLS.contains(&tool.function.name.as_str())
             });
         }
+        let mcp_prompt_context = mcp_snapshot.prompt_context(&tools);
+        system_prompt.push_str(&mcp_prompt_context);
         let preferred_tool_fallbacks = {
             let model = engine.operator_model.read().await;
             let adaptation =
@@ -1535,6 +1537,7 @@ impl<'a> SendMessageRunner<'a> {
             preferred_session_id,
             mcp_session_id,
             mcp_routes,
+            mcp_prompt_context,
             onecontext_bootstrap,
             skill_preflight,
             agent_scope_id,

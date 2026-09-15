@@ -14,6 +14,7 @@ pub(super) struct SendMessageRunner<'a> {
     pub(super) config: AgentConfig,
     pub(super) provider_config: ProviderConfig,
     pub(super) mcp_routes: std::collections::HashMap<String, crate::mcp_client::McpToolRoute>,
+    pub(super) mcp_prompt_context: String,
     pub(super) mcp_session_id: Option<zorai_protocol::SessionId>,
     pub(super) preferred_session_id: Option<zorai_protocol::SessionId>,
     pub(super) onecontext_bootstrap: Option<String>,

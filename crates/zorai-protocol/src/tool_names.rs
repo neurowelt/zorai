@@ -111,6 +111,7 @@ pub const LIST_TASKS: &str = "list_tasks";
 pub const LIST_TERMINALS: &str = "list_terminals";
 pub const LIST_THREADS: &str = "list_threads";
 pub const LIST_TOOLS: &str = "list_tools";
+pub const LIST_MCP_SERVERS: &str = "list_mcp_servers";
 pub const LIST_TODOS: &str = "list_todos";
 pub const LIST_TRIGGER_FIRE_HISTORY: &str = "list_trigger_fire_history";
 pub const LIST_TRIGGERS: &str = "list_triggers";
@@ -373,6 +374,7 @@ pub const SYSTEM_TOOLS: &[&str] = &[
     SHOW_IMPORT_REPORT,
     PREVIEW_SHADOW_RUN,
     LIST_TOOLS,
+    LIST_MCP_SERVERS,
     FETCH_GATEWAY_HISTORY,
     LIST_SNAPSHOTS,
     RESTORE_SNAPSHOT,

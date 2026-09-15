@@ -2,7 +2,7 @@ use super::super::{
     adapted_timeout_override_for_mode, daemon_tool_timeout_seconds,
     default_timeout_seconds_for_tool, execute_create_file, execute_get_git_line_statuses,
     execute_onecontext_search_with_runner, execute_read_file, execute_tool, get_available_tools,
-    get_file_path_arg,
+    get_file_path_arg, normalize_tool_dispatch,
 };
 use crate::agent::{
     types::{AgentConfig, AgentEvent, ToolCall, ToolFunction},
@@ -278,13 +278,20 @@ fn web_and_terminal_tool_descriptions_distinguish_text_reads_from_binary_downloa
         .expect("fetch_url tool should be available");
     let run_terminal_command = tools
         .iter()
-        .find(|tool| tool.function.name == "run_terminal_command")
-        .expect("run_terminal_command tool should be available");
+        .find(|tool| tool.function.name == "run_terminal")
+        .expect("run_terminal tool should be available");
     let execute_managed_command = tools
         .iter()
-        .find(|tool| tool.function.name == "execute_managed_command")
-        .expect("execute_managed_command tool should be available");
+        .find(|tool| tool.function.name == "managed_command")
+        .expect("managed_command tool should be available");
 
+    assert!(
+        !tools
+            .iter()
+            .any(|tool| tool.function.name == "run_terminal_command"
+                || tool.function.name == "execute_managed_command"),
+        "legacy terminal tool aliases must stay out of the catalog"
+    );
     assert!(
         fetch_url.function.description.contains("Markdown")
             && fetch_url.function.description.contains("inventory"),
@@ -340,12 +347,47 @@ fn search_files_tool_schema_exposes_timeout_seconds() {
 }
 
 #[test]
-fn summary_alias_tool_is_exposed() {
+fn summary_alias_tool_is_hidden_from_catalog() {
     let config = AgentConfig::default();
     let temp_dir = std::env::temp_dir();
     let tools = get_available_tools(&config, &temp_dir, false);
 
-    assert!(tools.iter().any(|tool| tool.function.name == "summary"));
+    assert!(!tools.iter().any(|tool| tool.function.name == "summary"));
+    assert!(tools
+        .iter()
+        .any(|tool| tool.function.name == "semantic_query"));
+}
+
+#[test]
+fn bash_tool_is_exposed_and_legacy_alias_is_hidden_from_catalog() {
+    let config = AgentConfig::default();
+    let temp_dir = std::env::temp_dir();
+    let tools = get_available_tools(&config, &temp_dir, false);
+
+    assert!(tools.iter().any(|tool| tool.function.name == "bash"));
+    assert!(!tools
+        .iter()
+        .any(|tool| tool.function.name == "bash_command"));
+    assert!(!tools
+        .iter()
+        .any(|tool| tool.function.name == "fetch_authenticated_providers"));
+    assert!(!tools
+        .iter()
+        .any(|tool| tool.function.name == "fetch_provider_models"));
+}
+
+#[test]
+fn normalize_tool_dispatch_maps_legacy_shell_aliases() {
+    let args = serde_json::json!({"command": "echo hi"});
+    let (bash_name, _) = normalize_tool_dispatch("bash_command", &args);
+    let (python_name, _) = normalize_tool_dispatch("python_execute", &args);
+    let (run_terminal_name, _) = normalize_tool_dispatch("run_terminal_command", &args);
+    let (managed_name, _) = normalize_tool_dispatch("execute_managed_command", &args);
+
+    assert_eq!(bash_name, "bash");
+    assert_eq!(python_name, "python");
+    assert_eq!(run_terminal_name, "run_terminal");
+    assert_eq!(managed_name, "managed_command");
 }
 
 #[test]

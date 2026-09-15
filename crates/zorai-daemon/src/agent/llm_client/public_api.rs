@@ -799,7 +799,10 @@ pub(crate) fn build_chat_completion_messages_with_options(
 
         if assistant_has_tool_calls {
             current_turn_has_tool_call = true;
-            obj.insert("content".to_string(), serde_json::Value::Null);
+            obj.insert(
+                "content".to_string(),
+                serde_json::Value::String(String::new()),
+            );
             obj.insert(
                 "tool_calls".to_string(),
                 serde_json::to_value(message.tool_calls.clone().unwrap_or_default())?,
@@ -812,7 +815,7 @@ pub(crate) fn build_chat_completion_messages_with_options(
                 );
             }
         } else {
-            obj.insert("content".to_string(), api_content_to_json(&message.content));
+            let mut content_json = api_content_to_json(&message.content);
             if message.role == "assistant" {
                 let include_after_tool_call = include_non_tool_reasoning_content_after_tool_call
                     && current_turn_has_tool_call;
@@ -823,7 +826,15 @@ pub(crate) fn build_chat_completion_messages_with_options(
                         include_after_tool_call && synthesize_missing_tool_reasoning_content,
                     );
                 }
+                if assistant_content_is_unset(&content_json) {
+                    if obj.contains_key("reasoning_content") {
+                        content_json = serde_json::Value::String(String::new());
+                    } else {
+                        continue;
+                    }
+                }
             }
+            obj.insert("content".to_string(), content_json);
             if let Some(tool_call_id) = &message.tool_call_id {
                 obj.insert(
                     "tool_call_id".to_string(),
@@ -834,7 +845,9 @@ pub(crate) fn build_chat_completion_messages_with_options(
                 obj.insert("name".to_string(), serde_json::Value::String(name.clone()));
             }
             if let Some(tool_calls) = &message.tool_calls {
-                obj.insert("tool_calls".to_string(), serde_json::to_value(tool_calls)?);
+                if !tool_calls.is_empty() {
+                    obj.insert("tool_calls".to_string(), serde_json::to_value(tool_calls)?);
+                }
             }
         }
 
@@ -842,6 +855,15 @@ pub(crate) fn build_chat_completion_messages_with_options(
     }
 
     Ok(out)
+}
+
+fn assistant_content_is_unset(content: &serde_json::Value) -> bool {
+    match content {
+        serde_json::Value::Null => true,
+        serde_json::Value::String(text) => text.trim().is_empty(),
+        serde_json::Value::Array(blocks) => blocks.is_empty(),
+        _ => false,
+    }
 }
 
 fn insert_reasoning_content(

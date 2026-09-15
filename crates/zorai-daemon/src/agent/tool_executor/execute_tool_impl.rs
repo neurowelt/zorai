@@ -546,7 +546,7 @@ fn maybe_rewrite_shell_tool_to_safer_file_mutation(
     critique_modifications: &[String],
 ) -> Option<(String, serde_json::Value, Vec<String>)> {
     if !matches!(
-        tool_name,
+        tool_names::canonical_tool_name(tool_name),
         tool_names::BASH_COMMAND
             | tool_names::RUN_TERMINAL_COMMAND
             | tool_names::EXECUTE_MANAGED_COMMAND
@@ -642,7 +642,7 @@ pub(crate) fn apply_critique_modifications(
     };
     let mut adjustments = Vec::new();
 
-    match tool_name {
+    match tool_names::canonical_tool_name(tool_name) {
         tool_names::BASH_COMMAND
         | tool_names::RUN_TERMINAL_COMMAND
         | tool_names::EXECUTE_MANAGED_COMMAND => {
@@ -992,7 +992,7 @@ pub(crate) fn annotate_review_with_critique(
 
 fn is_shell_execution_tool(tool_name: &str) -> bool {
     matches!(
-        tool_name,
+        tool_names::canonical_tool_name(tool_name),
         tool_names::BASH_COMMAND
             | tool_names::RUN_TERMINAL_COMMAND
             | tool_names::EXECUTE_MANAGED_COMMAND
@@ -1605,7 +1605,9 @@ async fn prepare_tool_execution(
             pending_approval: None,
         });
     }
-    if trusted_weles_internal_task && effective_tool_name.as_str() == tool_names::BASH_COMMAND {
+    if trusted_weles_internal_task
+        && tool_names::canonical_tool_name(effective_tool_name.as_str()) == tool_names::BASH_COMMAND
+    {
         if let serde_json::Value::Object(ref mut map) = effective_args {
             map.insert(
                 "__weles_force_headless".to_string(),

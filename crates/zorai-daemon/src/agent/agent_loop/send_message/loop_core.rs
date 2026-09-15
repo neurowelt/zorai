@@ -151,7 +151,8 @@ impl<'a> SendMessageRunner<'a> {
         // on every LLM loop. Hold the read guard and only clone messages when we must patch
         // the last user message content. This cuts per-turn heap churn from O(thread len)
         // to O(1) in the common case (stored == llm content).
-        let needs_patch = self.llm_user_content != self.stored_user_content;
+        let needs_patch = self.llm_user_content != self.stored_user_content
+            && !self.reuse_existing_user_message;
         // Megathread warning — surfaces unbounded growth before it hits 13 GB again.
         if thread.messages.len() > 2048 && self.loop_count <= 2 {
             tracing::warn!(

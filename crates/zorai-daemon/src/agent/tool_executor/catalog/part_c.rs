@@ -314,15 +314,6 @@ pub(crate) fn add_available_tools_part_c(
         },
         "required": ["operation_id"]
     })));
-    tools.push(tool_def(tool_names::GET_BACKGROUND_TASK_STATUS, "Compatibility alias for background managed-terminal commands. Prefer `get_operation_status` with wait=true instead of polling this tool.", serde_json::json!({
-        "type": "object",
-        "properties": {
-            "background_task_id": { "type": "string", "description": "Execution handle returned as background_task_id by a non-blocking managed terminal command" },
-            "wait": { "type": "boolean", "description": "When true, block in the daemon until completion or timeout (default: false). Prefer get_operation_status with wait=true." },
-            "timeout_seconds": { "type": "integer", "minimum": 0, "maximum": 3600, "description": "Max seconds to wait when wait=true (default: 600, max: 3600)" }
-        },
-        "required": ["background_task_id"]
-    })));
     tools.push(tool_def(tool_names::ALLOCATE_TERMINAL, "Allocate another daemon-managed terminal lane in the same workspace as the current session. Use this when your chosen session is occupied by a blocking or long-running command and you need another terminal to continue working.", serde_json::json!({
         "type": "object",
         "properties": {
@@ -331,20 +322,9 @@ pub(crate) fn add_available_tools_part_c(
             "cwd": { "type": "string", "description": "Optional working directory hint to show in the workspace metadata" }
         }
     })));
-    tools.push(tool_def(tool_names::FETCH_AUTHENTICATED_PROVIDERS, "List the currently authenticated providers that are ready for agent execution, including auth source, configured/default model, and base URL. Legacy alias for `list_providers`.", serde_json::json!({
-        "type": "object",
-        "properties": {}
-    })));
     tools.push(tool_def(tool_names::LIST_PROVIDERS, "List configured providers with authentication state, auth source, configured/default model, and base URL. Use this before selecting a provider for subagents or model switching.", serde_json::json!({
         "type": "object",
         "properties": {}
-    })));
-    tools.push(tool_def(tool_names::FETCH_PROVIDER_MODELS, "Fetch the remotely available models for one authenticated provider using its configured credentials and base URL. Legacy alias for `list_models`.", serde_json::json!({
-        "type": "object",
-        "properties": {
-            "provider": { "type": "string", "description": "Authenticated provider ID to inspect, such as `openai` or `github_copilot`." }
-        },
-        "required": ["provider"]
     })));
     tools.push(tool_def(tool_names::LIST_MODELS, "List the remotely available models for one authenticated provider using its configured credentials and base URL. Use this before setting a model override or calling `switch_model`.", serde_json::json!({
         "type": "object",

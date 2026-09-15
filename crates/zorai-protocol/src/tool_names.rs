@@ -11,7 +11,8 @@ pub const APPLY_PATCH: &str = "apply_patch";
 pub const ANSWER_CHILD: &str = "answer_child";
 pub const ASK_PARENT: &str = "ask_parent";
 pub const ASK_QUESTIONS: &str = "ask_questions";
-pub const BASH_COMMAND: &str = "bash_command";
+pub const BASH_COMMAND: &str = "bash";
+pub const BASH_COMMAND_LEGACY: &str = "bash_command";
 pub const BROADCAST_CONTRIBUTION: &str = "broadcast_contribution";
 pub const BROWSER_BACK: &str = "browser_back";
 pub const BROWSER_CLICK: &str = "browser_click";
@@ -48,7 +49,8 @@ pub const EXTEND_SUBAGENT_BUDGET: &str = "extend_subagent_budget";
 pub const EQUALIZE_LAYOUT: &str = "equalize_layout";
 pub const EDIT_FILE: &str = "edit_file";
 pub const EXECUTE_COMMAND: &str = "execute_command";
-pub const EXECUTE_MANAGED_COMMAND: &str = "execute_managed_command";
+pub const EXECUTE_MANAGED_COMMAND: &str = "managed_command";
+pub const EXECUTE_MANAGED_COMMAND_LEGACY: &str = "execute_managed_command";
 pub const FETCH_AUTHENTICATED_PROVIDERS: &str = "fetch_authenticated_providers";
 pub const FETCH_GATEWAY_HISTORY: &str = "fetch_gateway_history";
 pub const FETCH_PROVIDER_MODELS: &str = "fetch_provider_models";
@@ -128,7 +130,8 @@ pub const PLUGIN_API_CALL: &str = "plugin_api_call";
 pub const PREVIEW_ROUTINE: &str = "preview_routine";
 pub const PREVIEW_SHADOW_RUN: &str = "preview_shadow_run";
 pub const PROMOTE_GENERATED_TOOL: &str = "promote_generated_tool";
-pub const PYTHON_EXECUTE: &str = "python_execute";
+pub const PYTHON_EXECUTE: &str = "python";
+pub const PYTHON_EXECUTE_LEGACY: &str = "python_execute";
 pub const QUERY_AUDITS: &str = "query_audits";
 pub const READ_ACTIVE_TERMINAL_CONTENT: &str = "read_active_terminal_content";
 pub const READ_FILE: &str = "read_file";
@@ -157,7 +160,8 @@ pub const RUN_DIVERGENT: &str = "run_divergent";
 pub const RUN_GENERATED_TOOL: &str = "run_generated_tool";
 pub const RUN_ROUTINE_NOW: &str = "run_routine_now";
 pub const RUN_SNIPPET: &str = "run_snippet";
-pub const RUN_TERMINAL_COMMAND: &str = "run_terminal_command";
+pub const RUN_TERMINAL_COMMAND: &str = "run_terminal";
+pub const RUN_TERMINAL_COMMAND_LEGACY: &str = "run_terminal_command";
 pub const RUN_WORKFLOW_PACK: &str = "run_workflow_pack";
 pub const SCHEDULE_WAKEUP: &str = "schedule_wakeup";
 pub const SEARCH_FILES: &str = "search_files";
@@ -265,9 +269,12 @@ pub const TERMINAL_TOOLS: &[&str] = &[
     EXECUTE_COMMAND,
     CARGO,
     BASH_COMMAND,
+    BASH_COMMAND_LEGACY,
     RUN_BASH,
     RUN_TERMINAL_COMMAND,
+    RUN_TERMINAL_COMMAND_LEGACY,
     EXECUTE_MANAGED_COMMAND,
+    EXECUTE_MANAGED_COMMAND_LEGACY,
     LIST_TERMINALS,
     READ_ACTIVE_TERMINAL_CONTENT,
     ALLOCATE_TERMINAL,
@@ -476,3 +483,23 @@ pub const THREAD_TOOLS: &[&str] = &[
     RELOAD_EMERGENT_PROTOCOL_REGISTRY,
     DECODE_EMERGENT_PROTOCOL,
 ];
+
+/// Legacy wire names that remain callable for in-flight threads but are omitted
+/// from new LLM tool catalogs. Values are (legacy, canonical).
+pub const TOOL_NAME_ALIASES: &[(&str, &str)] = &[
+    (BASH_COMMAND_LEGACY, BASH_COMMAND),
+    (PYTHON_EXECUTE_LEGACY, PYTHON_EXECUTE),
+    (RUN_TERMINAL_COMMAND_LEGACY, RUN_TERMINAL_COMMAND),
+    (EXECUTE_MANAGED_COMMAND_LEGACY, EXECUTE_MANAGED_COMMAND),
+    (SUMMARY, SEMANTIC_QUERY),
+    (FETCH_PROVIDER_MODELS, LIST_MODELS),
+];
+
+pub fn canonical_tool_name(name: &str) -> &str {
+    for (alias, canonical) in TOOL_NAME_ALIASES {
+        if *alias == name {
+            return canonical;
+        }
+    }
+    name
+}

@@ -431,20 +431,27 @@ fn list_sessions_tool_requires_workspace_topology() {
 }
 
 #[test]
-fn python_execute_tool_is_exposed_with_expected_schema() {
+fn python_tool_is_exposed_with_expected_schema() {
     let config = AgentConfig::default();
     let temp_dir = std::env::temp_dir();
     let tools = get_available_tools(&config, &temp_dir, false);
-    let python_execute = tools
+    let python = tools
         .iter()
-        .find(|tool| tool.function.name == "python_execute")
-        .expect("python_execute tool should be available");
+        .find(|tool| tool.function.name == "python")
+        .expect("python tool should be available");
 
-    let properties = python_execute
+    assert!(
+        !tools
+            .iter()
+            .any(|tool| tool.function.name == "python_execute"),
+        "legacy python_execute alias must stay out of the catalog"
+    );
+
+    let properties = python
         .function
         .parameters
         .get("properties")
-        .expect("python_execute schema should expose properties");
+        .expect("python schema should expose properties");
 
     assert!(
         properties.get("code").is_some(),
@@ -460,7 +467,7 @@ fn python_execute_tool_is_exposed_with_expected_schema() {
         "schema should include timeout_seconds"
     );
     assert_eq!(
-        python_execute
+        python
             .function
             .parameters
             .get("required")
@@ -877,39 +884,18 @@ fn memory_read_tools_are_exposed_with_injection_aware_schema() {
 }
 
 #[test]
-fn get_background_task_status_tool_is_exposed_with_expected_schema() {
+fn get_background_task_status_alias_is_hidden_from_catalog() {
     let config = AgentConfig::default();
     let temp_dir = std::env::temp_dir();
     let tools = get_available_tools(&config, &temp_dir, false);
-    let status_tool = tools
-        .iter()
-        .find(|tool| tool.function.name == "get_background_task_status")
-        .expect("get_background_task_status tool should be available");
-
-    let properties = status_tool
-        .function
-        .parameters
-        .get("properties")
-        .and_then(|value| value.as_object())
-        .expect("get_background_task_status schema should expose properties");
-
     assert!(
-        properties.get("background_task_id").is_some(),
-        "schema should include background_task_id"
+        !tools
+            .iter()
+            .any(|tool| tool.function.name == "get_background_task_status")
     );
-    let required = status_tool
-        .function
-        .parameters
-        .get("required")
-        .and_then(|value| value.as_array())
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| item.as_str())
-                .collect::<Vec<_>>()
-        })
-        .expect("get_background_task_status should define required fields");
-    assert_eq!(required, vec!["background_task_id"]);
+    assert!(tools
+        .iter()
+        .any(|tool| tool.function.name == "get_operation_status"));
 }
 
 #[test]

@@ -566,7 +566,12 @@ pub(crate) fn sanitize_api_messages(messages: &[ApiMessage]) -> Vec<ApiMessage> 
                     continue;
                 }
             }
-            if api_content_has_non_empty_payload(&msg.content) {
+            if api_content_has_non_empty_payload(&msg.content)
+                || msg
+                    .reasoning
+                    .as_ref()
+                    .is_some_and(|reasoning| !reasoning.trim().is_empty())
+            {
                 out.push(msg.clone());
             } else {
                 tracing::warn!(

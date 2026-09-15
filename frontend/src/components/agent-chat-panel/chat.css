@@ -709,7 +709,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--text-sm-plus);
+  font-size: var(--text-sm);
 }
 
 .acp-tool-row__status {
@@ -1026,6 +1026,7 @@
   overflow-wrap: anywhere;
   font-size: var(--text-sm-plus);
   line-height: 1.65;
+  font-weight: 400;
 }
 
 .acp-md--streaming {
@@ -1051,14 +1052,14 @@
   background: transparent;
   border-radius: 2px;
   overflow: auto;
-  font-size: var(--text-sm-plus);
+  font-size: var(--text-sm);
   line-height: 1.5;
   border: 1px solid var(--border);
   border-radius: 8px;
 }
 
 .acp-md code {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
 }
 
 .acp-md pre code {
@@ -1071,7 +1072,6 @@
   background: var(--zorai-bg-surface);
   padding: 1px 5px;
   border-radius: 2px;
-  font-size: 0.9em;
   overflow-wrap: anywhere;
 }
 

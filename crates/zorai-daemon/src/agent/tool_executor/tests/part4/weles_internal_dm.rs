@@ -379,12 +379,12 @@ async fn execute_dispatched_weles_task_uses_internal_dm_thread() {
             .get("tools")
             .and_then(|value| value.as_array())
             .is_some_and(|tools| tools.iter().any(|tool| {
-                tool.get("name").and_then(|value| value.as_str()) == Some("bash_command")
+                tool.get("name").and_then(|value| value.as_str()) == Some("bash")
                     || tool
                         .get("function")
                         .and_then(|value| value.get("name"))
                         .and_then(|value| value.as_str())
-                        == Some("bash_command")
+                        == Some("bash")
             })),
         "task-scoped WELES internal DM should expose bash tooling: {latest_body}"
     );

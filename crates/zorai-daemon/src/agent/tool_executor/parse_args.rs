@@ -14,7 +14,10 @@ pub(crate) fn normalize_tool_dispatch(
             }
             (tool_names::SEMANTIC_QUERY.to_string(), normalized)
         }
-        _ => (tool_name.to_string(), args.clone()),
+        _ => (
+            tool_names::canonical_tool_name(tool_name).to_string(),
+            args.clone(),
+        ),
     }
 }
 

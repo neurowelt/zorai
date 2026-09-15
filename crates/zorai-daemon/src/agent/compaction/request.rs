@@ -312,16 +312,20 @@ pub(crate) fn inject_reused_user_message_if_missing(
     messages: &mut Vec<ApiMessage>,
     reused_user_message: Option<&str>,
 ) {
-    if messages.iter().any(|message| message.role == "user") {
-        return;
-    }
-
     let Some(reused_user_message) = reused_user_message
         .map(str::trim)
         .filter(|message| !message.is_empty())
     else {
         return;
     };
+
+    let needs_trailing_user = match messages.last() {
+        Some(message) => message.role != "user",
+        None => true,
+    };
+    if !needs_trailing_user {
+        return;
+    }
 
     messages.push(ApiMessage {
         role: "user".to_string(),

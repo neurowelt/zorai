@@ -91,7 +91,7 @@ async function patchDaemonThreadExecutionProfile(
 ): Promise<void> {
   const daemonThreadId = resolveDaemonThreadIdForRuntime(thread);
   if (!daemonThreadId) {
-    throw new Error("Thread is not linked to the daemon yet; provider change was not applied.");
+    return;
   }
   const bridge = getBridge();
   const existing = await bridge?.agentGetThreadExecutionProfile?.(daemonThreadId).catch(() => null) as

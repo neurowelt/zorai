@@ -2,7 +2,7 @@ use super::types::{Argument, ArgumentPoint, Role};
 
 fn tool_specific_caution_claim(tool_name: &str, action_summary: &str) -> Option<String> {
     let safe_action_summary = super::sanitize_critique_snippet(action_summary, 96);
-    match tool_name {
+    match zorai_protocol::tool_names::canonical_tool_name(tool_name) {
         zorai_protocol::tool_names::BASH_COMMAND | zorai_protocol::tool_names::RUN_TERMINAL_COMMAND | zorai_protocol::tool_names::EXECUTE_MANAGED_COMMAND => Some(format!(
             "Disable network access, enable sandboxing, and downgrade any yolo security level before running {}.",
             safe_action_summary

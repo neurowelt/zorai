@@ -10,7 +10,8 @@ export const TOOL_NAMES = {
   applyFilePatch: "apply_file_patch",
   applyPatch: "apply_patch",
   askQuestions: "ask_questions",
-  bashCommand: "bash_command",
+  bashCommand: "bash",
+  bashCommandLegacy: "bash_command",
   broadcastContribution: "broadcast_contribution",
   browserBack: "browser_back",
   browserClick: "browser_click",
@@ -46,7 +47,8 @@ export const TOOL_NAMES = {
   enqueueTask: "enqueue_task",
   extendSubagentBudget: "extend_subagent_budget",
   executeCommand: "execute_command",
-  executeManagedCommand: "execute_managed_command",
+  executeManagedCommand: "managed_command",
+  executeManagedCommandLegacy: "execute_managed_command",
   fetchAuthenticatedProviders: "fetch_authenticated_providers",
   fetchGatewayHistory: "fetch_gateway_history",
   fetchProviderModels: "fetch_provider_models",
@@ -124,7 +126,8 @@ export const TOOL_NAMES = {
   previewRoutine: "preview_routine",
   previewShadowRun: "preview_shadow_run",
   promoteGeneratedTool: "promote_generated_tool",
-  pythonExecute: "python_execute",
+  pythonExecute: "python",
+  pythonExecuteLegacy: "python_execute",
   queryAudits: "query_audits",
   readActiveTerminalContent: "read_active_terminal_content",
   readFile: "read_file",
@@ -148,7 +151,8 @@ export const TOOL_NAMES = {
   resumeRoutine: "resume_routine",
   routeToSpecialist: "route_to_specialist",
   runBash: "run_bash",
-  runTerminalCommand: "run_terminal_command",
+  runTerminalCommand: "run_terminal",
+  runTerminalCommandLegacy: "run_terminal_command",
   runDebate: "run_debate",
   runDivergent: "run_divergent",
   runGeneratedTool: "run_generated_tool",
@@ -267,9 +271,12 @@ export const TOOL_NAME_GROUPS = {
     TOOL_NAMES.executeCommand,
     TOOL_NAMES.cargo,
     TOOL_NAMES.bashCommand,
+    TOOL_NAMES.bashCommandLegacy,
     TOOL_NAMES.runBash,
     TOOL_NAMES.runTerminalCommand,
+    TOOL_NAMES.runTerminalCommandLegacy,
     TOOL_NAMES.executeManagedCommand,
+    TOOL_NAMES.executeManagedCommandLegacy,
     TOOL_NAMES.listTerminals,
     TOOL_NAMES.readActiveTerminalContent,
     TOOL_NAMES.allocateTerminal,
@@ -472,3 +479,19 @@ export const TOOL_NAME_GROUPS = {
     TOOL_NAMES.decodeEmergentProtocol,
   ],
 } as const;
+
+export const TOOL_NAME_ALIASES: ReadonlyArray<readonly [string, string]> = [
+  [TOOL_NAMES.bashCommandLegacy, TOOL_NAMES.bashCommand],
+  [TOOL_NAMES.pythonExecuteLegacy, TOOL_NAMES.pythonExecute],
+  [TOOL_NAMES.runTerminalCommandLegacy, TOOL_NAMES.runTerminalCommand],
+  [TOOL_NAMES.executeManagedCommandLegacy, TOOL_NAMES.executeManagedCommand],
+  [TOOL_NAMES.summary, TOOL_NAMES.semanticQuery],
+  [TOOL_NAMES.fetchProviderModels, TOOL_NAMES.listModels],
+];
+
+export function canonicalToolName(name: string): string {
+  for (const [alias, canonical] of TOOL_NAME_ALIASES) {
+    if (alias === name) return canonical;
+  }
+  return name;
+}

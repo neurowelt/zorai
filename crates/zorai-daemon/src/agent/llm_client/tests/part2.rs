@@ -158,7 +158,7 @@ fn messages_to_api_format_normalizes_invalid_tool_call_arguments() {
 }
 
 #[test]
-fn chat_completion_messages_null_assistant_content_for_tool_calls() {
+fn chat_completion_messages_empty_assistant_content_for_tool_calls() {
     let messages = vec![ApiMessage {
         role: "assistant".to_string(),
         content: ApiContent::Text("I'll inspect that now".to_string()),
@@ -178,7 +178,7 @@ fn chat_completion_messages_null_assistant_content_for_tool_calls() {
     let serialized = build_chat_completion_messages("system prompt", &messages).expect("serialize");
     assert_eq!(serialized.len(), 2);
     assert_eq!(serialized[1]["role"], "assistant");
-    assert!(serialized[1]["content"].is_null());
+    assert_eq!(serialized[1]["content"], "");
     assert_eq!(serialized[1]["tool_calls"][0]["id"], "call_1");
 }
 
@@ -361,6 +361,87 @@ fn openrouter_chat_request_drops_empty_assistant_messages_without_tool_calls() {
     assert_eq!(messages.len(), 2);
     assert_eq!(messages[0]["role"], "system");
     assert_eq!(messages[1]["role"], "user");
+}
+
+#[test]
+fn openrouter_deepseek_keeps_reasoning_only_assistant_with_empty_content() {
+    let mut config = responses_test_config(
+        "https://openrouter.ai/api/v1".to_string(),
+        AuthSource::ApiKey,
+    );
+    config.model = "deepseek/deepseek-v4.1-flash".to_string();
+
+    let body = build_openai_chat_completions_body(
+        PROVIDER_ID_OPENROUTER,
+        &config,
+        "system prompt",
+        &[
+            ApiMessage {
+                role: "user".to_string(),
+                content: ApiContent::Text("Continue.".to_string()),
+                reasoning: None,
+                tool_call_id: None,
+                name: None,
+                tool_calls: None,
+            },
+            ApiMessage {
+                role: "assistant".to_string(),
+                content: ApiContent::Text(String::new()),
+                reasoning: Some("Need to inspect the completed operation.".to_string()),
+                tool_call_id: None,
+                name: None,
+                tool_calls: None,
+            },
+        ],
+        &[],
+    )
+    .expect("body should build");
+
+    let messages = body["messages"].as_array().expect("messages array");
+    assert_eq!(messages.len(), 3);
+    assert_eq!(messages[2]["role"], "assistant");
+    assert_eq!(messages[2]["content"], "");
+    assert_eq!(
+        messages[2]["reasoning_content"],
+        "Need to inspect the completed operation."
+    );
+    assert!(messages[2].get("tool_calls").is_none());
+}
+
+#[test]
+fn openrouter_deepseek_tool_call_assistant_uses_empty_string_content() {
+    let mut config = responses_test_config(
+        "https://openrouter.ai/api/v1".to_string(),
+        AuthSource::ApiKey,
+    );
+    config.model = "deepseek/deepseek-v4.1-flash".to_string();
+
+    let body = build_openai_chat_completions_body(
+        PROVIDER_ID_OPENROUTER,
+        &config,
+        "system prompt",
+        &[ApiMessage {
+            role: "assistant".to_string(),
+            content: ApiContent::Text(String::new()),
+            reasoning: Some("calling a tool".to_string()),
+            tool_call_id: None,
+            name: None,
+            tool_calls: Some(vec![ApiToolCall {
+                id: "call_1".to_string(),
+                call_type: "function".to_string(),
+                function: ApiToolCallFunction {
+                    name: "list_files".to_string(),
+                    arguments: "{}".to_string(),
+                },
+            }]),
+        }],
+        &[],
+    )
+    .expect("body should build");
+
+    assert_eq!(body["messages"][1]["content"], "");
+    assert!(!body["messages"][1]["content"].is_null());
+    assert_eq!(body["messages"][1]["tool_calls"][0]["id"], "call_1");
 }
 
 #[test]

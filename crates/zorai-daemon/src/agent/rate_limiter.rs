@@ -119,6 +119,7 @@ pub fn build_default_limiter() -> RateLimiter {
     let mut limiter = RateLimiter::new();
 
     limiter.with_tool_limit(zorai_protocol::tool_names::BASH_COMMAND, 30, 0.5);
+    limiter.with_tool_limit(zorai_protocol::tool_names::BASH_COMMAND_LEGACY, 30, 0.5);
 
     let file_rate = 40.0 / 60.0;
     limiter.with_tool_limit(zorai_protocol::tool_names::WRITE_FILE, 40, file_rate);

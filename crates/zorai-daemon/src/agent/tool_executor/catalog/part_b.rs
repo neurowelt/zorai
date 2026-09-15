@@ -279,19 +279,6 @@ pub(crate) fn add_available_tools_part_b(
     ));
 
     tools.push(tool_def(
-        tool_names::SUMMARY,
-        "Backward-compatible alias for semantic_query with kind=summary.",
-        serde_json::json!({
-            "type": "object",
-            "properties": {
-                "target": { "type": "string", "description": "Optional package, service, path fragment, or module to focus" },
-                "path": { "type": "string", "description": "Workspace root (default: active session cwd)" },
-                "limit": { "type": "integer", "description": "Max results for list output (default: 20)" }
-            }
-        }),
-    ));
-
-    tools.push(tool_def(
         tool_names::LIST_MCP_SERVERS,
         "List configured MCP integrations, including disconnected servers, by server_id, name, aliases, connection state, permitted tool count, and optional workflow skill. Use for live integration discovery when a user names an MCP such as Portal or Companions; session history does not describe current connections.",
         serde_json::json!({"type": "object", "properties": {}}),

@@ -107,15 +107,17 @@ describe("thread runtime actions", () => {
     expect(useAgentStore.getState().threads[0].profileProvider).toBeNull();
   });
 
-  it("fails loudly when the thread is not linked to the daemon", async () => {
+  it("keeps the local profile when the thread is not linked to the daemon yet", async () => {
     useAgentStore.setState({
       threads: [thread("thread-a", "")],
       activeThreadId: "thread-a",
     } as any);
     const selected = useAgentStore.getState().threads[0];
-    await expect(applyThreadProviderModel(selected, "openrouter", "model-thread-a")).rejects.toThrow(
-      /not linked to the daemon/i,
-    );
+    await applyThreadProviderModel(selected, "openrouter", "model-thread-a");
     expect(agentSetThreadExecutionProfile).not.toHaveBeenCalled();
+    expect(useAgentStore.getState().threads[0]).toMatchObject({
+      profileProvider: "openrouter",
+      profileModel: "model-thread-a",
+    });
   });
 });

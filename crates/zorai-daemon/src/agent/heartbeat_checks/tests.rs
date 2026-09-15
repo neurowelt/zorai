@@ -129,6 +129,7 @@ async fn make_test_engine(
         mcp: Arc::new(crate::mcp_client::McpManager::new(data_dir.clone())),
         mcp_bindings: RwLock::new(HashMap::new()),
         mcp_config_lock: Mutex::new(()),
+        mcp_approval_state: Default::default(),
         started_at_ms: now_millis(),
         config,
         http_client,

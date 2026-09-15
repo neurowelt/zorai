@@ -158,10 +158,18 @@ impl AgentEngine {
                     let a = std::fs::canonicalize(&workspace.root);
                     let b = std::fs::canonicalize(binding);
                     if !Path::new(binding).is_absolute() || a.is_err() || b.is_err() {
-                        return mcp_context_error(thread_id, "MCP_WORKSPACE_INVALID", "A saved workspace binding is invalid or no longer exists. Start a new workspace-bound conversation. No request was sent; daemon CWD was not used.");
+                        return mcp_context_error(
+                            thread_id,
+                            "MCP_WORKSPACE_INVALID",
+                            "A saved workspace binding is invalid or no longer exists. Start a new workspace-bound conversation. No request was sent; daemon CWD was not used.",
+                        );
                     }
                     if a.ok() != b.ok() {
-                        return mcp_context_error(thread_id, "MCP_WORKSPACE_CONFLICT", "Thread workspace and MCP binding disagree. Start a new conversation from the intended workspace. No request was sent; daemon CWD was not used.");
+                        return mcp_context_error(
+                            thread_id,
+                            "MCP_WORKSPACE_CONFLICT",
+                            "Thread workspace and MCP binding disagree. Start a new conversation from the intended workspace. No request was sent; daemon CWD was not used.",
+                        );
                     }
                 }
                 return McpRequestContext::from_workspace(
@@ -289,9 +297,18 @@ fn context_from_execution_session(
     id: zorai_protocol::SessionId,
     sessions: &[zorai_protocol::SessionInfo],
 ) -> McpRequestContext {
-    match sessions.iter().find(|session| session.id == id && session.is_alive) {
-        Some(session) => McpRequestContext::from_workspace(thread, session.cwd.as_deref().map(Path::new)),
-        None => mcp_context_error(thread, "MCP_WORKSPACE_INVALID", "The bound execution session no longer exists. Start a new workspace-bound conversation. No request was sent; daemon CWD was not used."),
+    match sessions
+        .iter()
+        .find(|session| session.id == id && session.is_alive)
+    {
+        Some(session) => {
+            McpRequestContext::from_workspace(thread, session.cwd.as_deref().map(Path::new))
+        }
+        None => mcp_context_error(
+            thread,
+            "MCP_WORKSPACE_INVALID",
+            "The bound execution session no longer exists. Start a new workspace-bound conversation. No request was sent; daemon CWD was not used.",
+        ),
     }
 }
 

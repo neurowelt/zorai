@@ -429,3 +429,289 @@ async fn mcp_discovery_finds_named_servers_filters_before_pagination_and_preserv
     );
     engine.mcp.shutdown().await;
 }
+
+async fn guarded_mcp_engine(root: &std::path::Path, mock: &Mock) -> Arc<AgentEngine> {
+    let engine = mcp_engine(root).await;
+    {
+        let mut settings = engine.config.write().await;
+        settings.managed_execution.security_level = zorai_protocol::SecurityLevel::Moderate;
+        settings
+            .extra
+            .insert("weles_review_available".into(), json!(false));
+        settings.critique.enabled = false;
+    }
+    engine
+        .bind_mcp_workspace("mcp-thread", root.to_string_lossy().into())
+        .await;
+    engine.mcp.apply_desired_config(vec![config(mock)]).unwrap();
+    connected(&engine.mcp).await;
+    engine
+}
+
+async fn next_mcp_approval(events: &mut broadcast::Receiver<AgentEvent>) -> (String, String) {
+    timeout(Duration::from_secs(5), async {
+        loop {
+            if let AgentEvent::ApprovalRequired {
+                approval_id,
+                command,
+                rationale,
+                reasons,
+                ..
+            } = events.recv().await.unwrap()
+            {
+                assert!(rationale.unwrap().contains("Arguments:"));
+                assert!(reasons
+                    .iter()
+                    .any(|r| r.contains("WELES review unavailable")));
+                return (approval_id, command);
+            }
+        }
+    })
+    .await
+    .unwrap()
+}
+
+#[tokio::test]
+async fn mcp_guard_unavailable_queues_and_resumes_original_call_only_after_approval() {
+    let mock = Mock::start(|r| async move { basic(&r, true) }).await;
+    let root = tempdir().unwrap();
+    let engine = guarded_mcp_engine(root.path(), &mock).await;
+    let mut events = engine.subscribe();
+    let pending = tokio::spawn({
+        let engine = engine.clone();
+        async move { call(&engine, &name(&engine, "consult"), None).await }
+    });
+    let (id, _) = next_mcp_approval(&mut events).await;
+    assert!(mock.calls().is_empty());
+    assert!(!pending.is_finished());
+    assert!(
+        engine
+            .handle_task_approval_resolution(&id, zorai_protocol::ApprovalDecision::ApproveOnce)
+            .await
+    );
+    assert!(!pending.await.unwrap().is_error);
+    assert_eq!(mock.calls().len(), 1);
+    assert!(
+        !engine
+            .handle_task_approval_resolution(&id, zorai_protocol::ApprovalDecision::ApproveOnce)
+            .await
+    );
+    // Approve Once never becomes a tool-wide grant.
+    let pending = tokio::spawn({
+        let engine = engine.clone();
+        async move { call(&engine, &name(&engine, "consult"), None).await }
+    });
+    let (id, _) = next_mcp_approval(&mut events).await;
+    assert!(
+        engine
+            .handle_task_approval_resolution(&id, zorai_protocol::ApprovalDecision::Deny)
+            .await
+    );
+    assert!(pending.await.unwrap().is_error);
+    assert_eq!(mock.calls().len(), 1);
+    engine.mcp.shutdown().await;
+}
+
+#[tokio::test]
+async fn mcp_guard_always_approve_reuses_existing_rules_and_revocation() {
+    let mock = Mock::start(|r| async move { basic(&r, true) }).await;
+    let root = tempdir().unwrap();
+    let engine = guarded_mcp_engine(root.path(), &mock).await;
+    let mut events = engine.subscribe();
+    let pending = tokio::spawn({
+        let engine = engine.clone();
+        async move { call(&engine, &name(&engine, "consult"), None).await }
+    });
+    let (id, command) = next_mcp_approval(&mut events).await;
+    let rule = engine
+        .create_task_approval_rule_from_pending(&id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(rule.command, command);
+    assert!(
+        std::fs::read_to_string(engine.data_dir.join("task-approval-rules.json"))
+            .unwrap()
+            .contains(&rule.id)
+    );
+    engine
+        .handle_task_approval_resolution(&id, zorai_protocol::ApprovalDecision::ApproveOnce)
+        .await;
+    assert!(!pending.await.unwrap().is_error);
+    assert!(
+        !call(&engine, &name(&engine, "consult"), None)
+            .await
+            .is_error
+    );
+    assert_eq!(engine.list_task_approval_rules().await[0].use_count, 1);
+    // Permission for consult does not cover other tools.
+    let pending = tokio::spawn({
+        let engine = engine.clone();
+        async move { call(&engine, &name(&engine, "echo"), None).await }
+    });
+    let (id, other_command) = next_mcp_approval(&mut events).await;
+    assert_ne!(command, other_command);
+    engine
+        .handle_task_approval_resolution(&id, zorai_protocol::ApprovalDecision::Deny)
+        .await;
+    assert!(pending.await.unwrap().is_error);
+    assert!(engine.revoke_task_approval_rule(&rule.id).await);
+    let pending = tokio::spawn({
+        let engine = engine.clone();
+        async move { call(&engine, &name(&engine, "consult"), None).await }
+    });
+    let (id, _) = next_mcp_approval(&mut events).await;
+    engine
+        .handle_task_approval_resolution(&id, zorai_protocol::ApprovalDecision::Deny)
+        .await;
+    assert!(pending.await.unwrap().is_error);
+    assert_eq!(mock.calls().len(), 2);
+    engine.mcp.shutdown().await;
+}
+
+#[tokio::test]
+async fn mcp_guard_rechecks_stale_routes_after_operator_approval() {
+    let mock = Mock::start(|r| async move { basic(&r, true) }).await;
+    let root = tempdir().unwrap();
+    let engine = guarded_mcp_engine(root.path(), &mock).await;
+    let mut events = engine.subscribe();
+    let pending = tokio::spawn({
+        let engine = engine.clone();
+        async move { call(&engine, &name(&engine, "consult"), None).await }
+    });
+    let (id, _) = next_mcp_approval(&mut events).await;
+    engine.mcp.apply_desired_config(vec![]).unwrap();
+    engine
+        .handle_task_approval_resolution(&id, zorai_protocol::ApprovalDecision::ApproveOnce)
+        .await;
+    let result = pending.await.unwrap();
+    assert!(result.is_error);
+    assert!(
+        result
+            .content
+            .contains("disabled, offline, or reconfigured"),
+        "{result:?}"
+    );
+    assert!(mock.calls().is_empty());
+    engine.mcp.shutdown().await;
+}
+
+#[tokio::test]
+async fn mcp_guard_session_allowance_is_thread_and_connection_scoped() {
+    let mock = Mock::start(|r| async move { basic(&r, true) }).await;
+    let root = tempdir().unwrap();
+    let engine = guarded_mcp_engine(root.path(), &mock).await;
+    let mut events = engine.subscribe();
+    let pending = tokio::spawn({
+        let engine = engine.clone();
+        async move { call(&engine, &name(&engine, "consult"), None).await }
+    });
+    let (id, command) = next_mcp_approval(&mut events).await;
+    engine
+        .handle_task_approval_resolution(&id, zorai_protocol::ApprovalDecision::ApproveSession)
+        .await;
+    assert!(!pending.await.unwrap().is_error);
+    assert!(
+        !call(&engine, &name(&engine, "consult"), None)
+            .await
+            .is_error
+    );
+    assert!(!engine.mcp_has_approval(&command, "different-thread").await);
+    let mut changed = config(&mock);
+    changed.share_workspace_context = false;
+    engine.mcp.apply_desired_config(vec![changed]).unwrap();
+    let route = engine.mcp.route(&name(&engine, "consult")).unwrap();
+    let changed_command = engine.mcp.approval_command(&route).unwrap();
+    assert!(
+        !engine
+            .mcp_has_approval(&changed_command, "mcp-thread")
+            .await
+    );
+    assert!(engine.list_task_approval_rules().await.is_empty());
+    engine.mcp.shutdown().await;
+}
+
+#[tokio::test]
+async fn mcp_guard_cancellation_removes_waiter_without_sending_call() {
+    let mock = Mock::start(|r| async move { basic(&r, true) }).await;
+    let root = tempdir().unwrap();
+    let engine = guarded_mcp_engine(root.path(), &mock).await;
+    let cancel = CancellationToken::new();
+    let mut events = engine.subscribe();
+    let pending = tokio::spawn({
+        let engine = engine.clone();
+        let cancel = cancel.clone();
+        async move {
+            let tc = ToolCall {
+                id: "cancelled".into(),
+                function: ToolFunction {
+                    name: name(&engine, "consult"),
+                    arguments: "{}".into(),
+                },
+                weles_review: None,
+            };
+            execute_tool(
+                &tc,
+                &engine,
+                "mcp-thread",
+                None,
+                &engine.session_manager,
+                None,
+                &engine.event_tx,
+                &engine.data_dir,
+                &engine.http_client,
+                Some(cancel),
+                None,
+            )
+            .await
+        }
+    });
+    let (id, _) = next_mcp_approval(&mut events).await;
+    cancel.cancel();
+    assert!(
+        timeout(Duration::from_secs(2), pending)
+            .await
+            .unwrap()
+            .unwrap()
+            .is_error
+    );
+    assert!(engine
+        .create_task_approval_rule_from_pending(&id)
+        .await
+        .unwrap()
+        .is_none());
+    assert!(
+        !engine
+            .handle_task_approval_resolution(&id, zorai_protocol::ApprovalDecision::ApproveOnce)
+            .await
+    );
+    assert!(mock.calls().is_empty());
+    engine.mcp.shutdown().await;
+}
+
+#[tokio::test]
+async fn mcp_guard_rechecks_connection_consent_without_generation_change() {
+    let mock = Mock::start(|r| async move { basic(&r, true) }).await;
+    let root = tempdir().unwrap();
+    let engine = guarded_mcp_engine(root.path(), &mock).await;
+    let mut events = engine.subscribe();
+    let pending = tokio::spawn({
+        let engine = engine.clone();
+        async move { call(&engine, &name(&engine, "echo"), None).await }
+    });
+    let (id, _) = next_mcp_approval(&mut events).await;
+    let mut changed = config(&mock);
+    changed.share_workspace_context = false;
+    engine.mcp.apply_desired_config(vec![changed]).unwrap();
+    engine
+        .handle_task_approval_resolution(&id, zorai_protocol::ApprovalDecision::ApproveOnce)
+        .await;
+    let result = pending.await.unwrap();
+    assert!(result.is_error);
+    assert!(
+        result.content.contains("connection settings changed"),
+        "{result:?}"
+    );
+    assert!(mock.calls().is_empty());
+    engine.mcp.shutdown().await;
+}

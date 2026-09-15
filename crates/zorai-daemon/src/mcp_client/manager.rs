@@ -375,17 +375,35 @@ impl McpManager {
         connection.close().await;
         Ok(status)
     }
+    /// Stable across reconnects, but never transferable to different connection settings.
+    pub(crate) fn approval_command(&self, route: &McpToolRoute) -> Option<String> {
+        let state = self.state.read().unwrap();
+        let entry = state.servers.get(&route.server_id)?;
+        if !entry.config.enabled || entry.generation != route.generation {
+            return None;
+        }
+        Some(Self::approval_command_for(&entry.config, route))
+    }
+
+    fn approval_command_for(config: &McpServerConfig, route: &McpToolRoute) -> String {
+        use sha2::{Digest, Sha256};
+        let scope = serde_json::to_vec(config).expect("MCP configuration serializes");
+        let fingerprint = format!("{:x}", Sha256::digest(scope));
+        format!("MCP {} at {} [{}]", route.original_name, config.url, fingerprint)
+    }
+
     pub fn preflight(
         &self,
         route: &McpToolRoute,
         context: &McpRequestContext,
     ) -> Result<(), McpCallError> {
-        self.prepare_call(route, context).map(|_| ())
+        self.prepare_call(route, context, None).map(|_| ())
     }
     fn prepare_call(
         &self,
         route: &McpToolRoute,
         context: &McpRequestContext,
+        approval_command: Option<&str>,
     ) -> Result<
         (
             Arc<Connection>,
@@ -396,6 +414,14 @@ impl McpManager {
     > {
         let state = self.state.read().unwrap();
         let entry = state.servers.get(&route.server_id).filter(|e|e.config.enabled && e.generation == route.generation).ok_or_else(||McpCallError::new("MCP_ROUTE_STALE","MCP server is disabled, offline, or reconfigured. Refresh tools and reconnect. No request was sent."))?;
+        if approval_command
+            .is_some_and(|command| command != Self::approval_command_for(&entry.config, route))
+        {
+            return Err(McpCallError::new(
+                "MCP_APPROVAL_STALE",
+                "MCP connection settings changed while awaiting approval. Retry for a fresh decision. No request was sent.",
+            ));
+        }
         let connection = entry.connection.clone().ok_or_else(|| {
             McpCallError::new(
                 "MCP_OFFLINE",
@@ -429,6 +455,18 @@ impl McpManager {
         context: McpRequestContext,
         cancellation: CancellationToken,
     ) -> Result<McpCallOutcome, McpCallError> {
+        self.call_with_approval(route, arguments, context, cancellation, None)
+            .await
+    }
+
+    pub(crate) async fn call_with_approval(
+        &self,
+        route: McpToolRoute,
+        arguments: Value,
+        context: McpRequestContext,
+        cancellation: CancellationToken,
+        approval_command: Option<&str>,
+    ) -> Result<McpCallOutcome, McpCallError> {
         if cancellation.is_cancelled() {
             return Err(McpCallError::new(
                 "MCP_CANCELLED",
@@ -449,7 +487,7 @@ impl McpManager {
                 poll.calls += 1;
             }
         }
-        let (connection, meta, server_cancel) = self.prepare_call(&route, &context)?;
+        let (connection, meta, server_cancel) = self.prepare_call(&route, &context, approval_command)?;
         let arguments = arguments.as_object().cloned().ok_or_else(|| {
             McpCallError::new(
                 "MCP_ARGUMENTS_INVALID",

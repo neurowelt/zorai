@@ -1040,6 +1040,7 @@ fn pending_approval_for_weles_shell_block(
 }
 
 struct PreparedToolExecution {
+    mcp_approval_command: Option<String>,
     mcp_route: Option<crate::mcp_client::McpToolRoute>,
     pub(crate) tool_name: String,
     pub(crate) args: serde_json::Value,
@@ -1059,6 +1060,7 @@ async fn prepare_tool_execution(
     thread_id: &str,
     task_id: Option<&str>,
     mcp_route: Option<crate::mcp_client::McpToolRoute>,
+    cancel_token: Option<CancellationToken>,
 ) -> Result<PreparedToolExecution, ToolResult> {
     let args = match parse_tool_args(
         tool_call.function.name.as_str(),
@@ -1397,7 +1399,29 @@ async fn prepare_tool_execution(
             &effective_args,
         )
     };
-    let governance_decision = if matches!(security_level, SecurityLevel::Yolo) {
+    let mcp_approval_command = mcp_route
+        .as_ref()
+        .and_then(|route| agent.mcp.approval_command(route));
+    let mcp_operator_allowed =
+        if !crate::agent::agent_identity::is_weles_agent_scope(&active_scope_id)
+            && !trusted_weles_internal_task
+        {
+            if let Some(command) = &mcp_approval_command {
+                agent.mcp_has_approval(command, thread_id).await
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+    let mut governance_decision = if mcp_operator_allowed {
+        let mut decision = crate::agent::weles_governance::direct_allow_decision(
+            governance_classification.class,
+        );
+        decision.review.reasons = vec!["operator-approved MCP tool allowance".into()];
+        decision.review.audit_id = Some(format!("mcp_allowance_{}", uuid::Uuid::new_v4()));
+        decision
+    } else if matches!(security_level, SecurityLevel::Yolo) {
         // YOLO is an operator-selected no-supervision mode. Do not spawn a
         // WELES review task, create an approval, or attach a synthetic
         // supervision element to a goal. The ordinary tool result/audit trail
@@ -1511,6 +1535,37 @@ async fn prepare_tool_execution(
             }
         }
     };
+    if !governance_decision.should_execute
+        && is_mcp
+        && !crate::agent::agent_identity::is_weles_agent_scope(&active_scope_id)
+        && !trusted_weles_internal_task
+    {
+        if let Some(command) = &mcp_approval_command {
+            if agent
+                .request_mcp_approval(
+                    command.clone(),
+                    thread_id,
+                    &effective_tool_name,
+                    &effective_args,
+                    &governance_decision.review,
+                    cancel_token.unwrap_or_default(),
+                )
+                .await
+            {
+                governance_decision.should_execute = true;
+                governance_decision.block_message = None;
+                governance_decision.review.verdict = crate::agent::types::WelesVerdict::Allow;
+                governance_decision
+                    .review
+                    .reasons
+                    .push("operator approved this MCP call in Approval Center".into());
+            } else {
+                governance_decision.block_message = Some(
+                    "MCP call denied or cancelled before execution. No request was sent.".into(),
+                );
+            }
+        }
+    }
     if !governance_decision.should_execute {
         let mut review = governance_decision.review.clone();
         annotate_review_with_critique(
@@ -1587,6 +1642,7 @@ async fn prepare_tool_execution(
     };
 
     Ok(PreparedToolExecution {
+        mcp_approval_command,
         mcp_route,
         tool_name: effective_tool_name,
         args: effective_args.clone(),
@@ -2282,7 +2338,12 @@ pub fn execute_tool<'a>(
             None
         };
         let prepared = match Box::pin(prepare_tool_execution(
-            tool_call, agent, thread_id, task_id, mcp_route,
+            tool_call,
+            agent,
+            thread_id,
+            task_id,
+            mcp_route,
+            cancel_token.clone(),
         ))
         .await
         {
@@ -2335,11 +2396,12 @@ pub fn execute_tool<'a>(
             let context = mcp_context.expect("registered MCP route has captured context");
             let outcome = agent
                 .mcp
-                .call(
+                .call_with_approval(
                     route.clone(),
                     prepared.dispatch_args.clone(),
                     context,
                     cancel_token.clone().unwrap_or_default(),
+                    prepared.mcp_approval_command.as_deref(),
                 )
                 .await;
             let result = match outcome {
